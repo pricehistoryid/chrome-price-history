@@ -3,10 +3,11 @@ function scrapeTokopedia() {
   var titleEl = document.querySelector('#pdp_comp-product_content');
   if (titleEl) {
     var title = titleEl.firstElementChild.firstElementChild.textContent;
-    var price = document.querySelector('.price').textContent;
-    console.log(url, title, price);
+    var value = document.querySelector('.price').textContent;
+    value = value.replace('.',',').replace(/[^0-9.-]+/g,"");
+    console.log(url, title, value);
 
-    return { url, title, price };
+    return { url, title, value };
   }
   
   return null;
@@ -18,10 +19,11 @@ function scrapeShopee() {
   var priceEl = document.querySelector('.pqTWkA');
   if (titleEl && priceEl) {
     var title = titleEl.querySelector('span').textContent;
-    var price = priceEl.textContent;
-    console.log(url, title, price);
+    var value = priceEl.textContent;
+    value = value.replace('.',',').replace(/[^0-9.-]+/g,"");
+    console.log(url, title, value);
 
-    return { url, title, price };
+    return { url, title, value };
   }
   
   return null;

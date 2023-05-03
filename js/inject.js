@@ -1,3 +1,5 @@
+const addCustomStyle = css => parentPH.appendChild(document.createElement('style')).innerHTML = css;
+
 const elFactory = (type, attributes, ...children) => {
   const el = document.createElement(type)
 
@@ -16,49 +18,53 @@ const elFactory = (type, attributes, ...children) => {
   return el
 }
 
-var modalContainer = elFactory(
-  'div',
-  {'class': 'modal-container'},
-  elFactory(
-    'span',
-    {'class': 'close'},
-    '×'
-  ),
-  elFactory(
-    'div',
-    {'class': 'modal-header'},
-    'Price History Scrapper'
-  ),
-  elFactory(
-    'div',
-    {'class': 'modal-body'},
-    ''
-  )
-)
-
-var modal = elFactory(
-  'div',
-  {'class': 'modal'},
-  modalContainer
-)
-
-var base = elFactory(
-  "div",
-  {"class": "ph-item ph-title"},
-  'PRICES'
-)
-
-var ph = elFactory(
+var parentPH = elFactory(
   'a',
   {
     'href': '#',
     'class': 'ph-ext'
   },
-  base,
-  modal
+  elFactory(
+    'div',
+    { 'class': 'ph-item ph-title' },
+    ''
+  )
 )
-document.body.appendChild(ph);
-const addCustomStyle = css => ph.appendChild(document.createElement("style")).innerHTML = css;
+document.body.appendChild(parentPH);
+
+var modalContainer = elFactory(
+  'div',
+  { 'class': 'modal-container' },
+  elFactory(
+    'span',
+    { 'class': 'close' },
+    '×'
+  ),
+  elFactory(
+    'div',
+    { 'class': 'modal-header' },
+    'Price History Scrapper'
+  ),
+  elFactory(
+    'div',
+    { 'class': 'modal-body' },
+    elFactory(
+      'div',
+      {
+        'class': 'chart',
+        'id': 'chart-container'
+      },
+      ''
+    )
+  )
+)
+
+var modal = elFactory(
+  'div',
+  { 'class': 'modal' },
+  modalContainer
+)
+document.body.appendChild(modal);
 
 addCustomStyle(`
 .ph-ext {
@@ -67,7 +73,8 @@ addCustomStyle(`
   height: 60px;
   bottom: 40px;
   right: 40px;
-  background-color: #00AA5B;
+  background-size: contain;
+  background-image: url('https://raw.githubusercontent.com/wikankun/chrome-price-history/master/assets/price-history.png');
   border-radius: 50px;
   box-shadow: 2px 2px 3px #999;
 }
@@ -104,8 +111,10 @@ addCustomStyle(`
   color: #000000;
   margin: auto;
   padding: 20px;
-  width: 50%;
-  max-height: 40vh;
+  width: 660px;
+  min-width: 660px;
+  height: 380px;
+  min-height: 380px;
   overflow: auto;
   cursor: default;
 }
@@ -115,7 +124,7 @@ addCustomStyle(`
 }
 
 .modal-body {
-  padding-top: 10px;
+  
 }
 
 .close {
@@ -132,3 +141,5 @@ addCustomStyle(`
   cursor: pointer;
 }
 `);
+
+// background-color: #00AA5B;
