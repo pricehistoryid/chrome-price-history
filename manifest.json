@@ -16,9 +16,11 @@
         "https://shopee.co.id/*"
       ],
       "js": [
-        "inject.js",
-        "scrapper.js",
-        "modal.js"
+        "js/lightweight-charts.standalone.production.js",
+        "js/inject.js",
+        "js/scrapper.js",
+        "js/modal.js",
+        "js/event-listener.js"
       ],
       "run_at": "document_end"
     }
