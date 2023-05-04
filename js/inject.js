@@ -117,6 +117,7 @@ addCustomStyle(`
   min-height: 380px;
   overflow: auto;
   cursor: default;
+  box-sizing: border-box;
 }
 
 .modal-header {
