@@ -4,7 +4,7 @@ function scrapeTokopedia() {
   if (titleEl) {
     var title = titleEl.firstElementChild.firstElementChild.textContent;
     var value = document.querySelector('.price').textContent;
-    value = value.replace('.',',').replace(/[^0-9.-]+/g,"");
+    value = value.replaceAll('.','').replace(/[^0-9.-]+/g,"");
     console.log(url, title, value);
 
     return { url, title, value };
@@ -17,10 +17,10 @@ function scrapeShopee() {
   var url = window.location.href.split('?')[0];
   var titleEl = document.querySelector('._44qnta');
   var priceEl = document.querySelector('.pqTWkA');
-  if (titleEl && priceEl) {
+  if ((titleEl && priceEl) && priceEl.textContent) {
     var title = titleEl.querySelector('span').textContent;
     var value = priceEl.textContent;
-    value = value.replace('.',',').replace(/[^0-9.-]+/g,"");
+    value = value.replaceAll('.','').replace(/[^0-9.-]+/g,"");
     console.log(url, title, value);
 
     return { url, title, value };
