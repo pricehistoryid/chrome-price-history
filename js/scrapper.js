@@ -5,7 +5,7 @@ function scrapeTokopedia() {
     var title = titleEl.firstElementChild.firstElementChild.textContent;
     var value = document.querySelector('.price').textContent;
     value = value.replaceAll('.','').replace(/[^0-9.-]+/g,"");
-    console.log(url, title, value);
+    // console.log(url, title, value);
 
     return { url, title, value };
   }
@@ -21,7 +21,7 @@ function scrapeShopee() {
     var title = titleEl.querySelector('span').textContent;
     var value = priceEl.textContent;
     value = value.replaceAll('.','').replace(/[^0-9.-]+/g,"");
-    console.log(url, title, value);
+    // console.log(url, title, value);
 
     return { url, title, value };
   }
