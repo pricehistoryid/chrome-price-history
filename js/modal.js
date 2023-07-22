@@ -7,7 +7,7 @@ const myPriceFormatter = Intl.NumberFormat(currentLocale, {
 }).format;
 
 function printChart(ph) {
-  var prev_price = ph.prev_price;
+  var prev_price = JSON.parse(JSON.stringify(ph.prev_price));
   const chartOptions = {
     width: 600,
     height: 300,
@@ -73,7 +73,7 @@ function savePriceHistory(result) {
     time: date,
     value: Number(result.value)
   };
-  console.log(value);
+  // console.log(value);
 
   chrome.storage.local.get(["price_history"]).then((result) => {
     var ph = result.price_history;
@@ -92,7 +92,7 @@ function savePriceHistory(result) {
 
       // value changed
       if (
-        this_ph.prev_price[0].value != value.value &&
+        this_ph.prev_price[0].value != value.value ||
         this_ph.prev_price[0].time != value.time
       ) {
         this_ph = insertNewPrice(this_ph, value);
