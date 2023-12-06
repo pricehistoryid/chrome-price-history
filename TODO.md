@@ -1,3 +1,3 @@
 [x] add chart
-[] update icon
+[x] update icon
 [] integration with API
