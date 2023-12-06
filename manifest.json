@@ -3,15 +3,15 @@
   "name": "Market Price DB - ID",
   "description": "Log price from your favorite Indonesian online marketplace",
   "version": "0.0.1",
+  "icons": {
+    "128": "assets/price-history-128.png"
+  },
   "permissions": [
     "tabs",
     "storage",
     "activeTab",
     "scripting"
   ],
-  "action": {
-    "default_popup": "popup.html"
-  },
   "content_scripts": [
     {
       "matches": [
