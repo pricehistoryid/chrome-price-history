@@ -5,40 +5,57 @@ const myPriceFormatter = Intl.NumberFormat(currentLocale, {
   style: 'currency',
   currency: 'IDR',
 }).format;
+// Chart options
+const chartOptions = {
+  width: 600,
+  height: 300,
+  layout: {
+    textColor: 'black',
+    background: {
+      type: 'solid',
+      color: 'white'
+    }
+  }
+};
+const chart = LightweightCharts.createChart(
+  document.getElementById('chart-container'),
+  chartOptions
+);
+const lineSeries = chart.addLineSeries(
+  {
+    lastValueVisible: false,
+    priceLineVisible: false,
+  }
+);
 
 function printChart(ph) {
   var prev_price = JSON.parse(JSON.stringify(ph.prev_price));
-  const chartOptions = {
-    width: 600,
-    height: 300,
-    layout: {
-      textColor: 'black',
-      background: {
-        type: 'solid',
-        color: 'white'
-      }
-    }
-  };
-  const chart = LightweightCharts.createChart(
-    document.getElementById('chart-container'),
-    chartOptions
-  );
-  const lineSeries = chart.addLineSeries(
-    {
-      lastValueVisible: false,
-      priceLineVisible: false,
-    }
-  );
+
   lineSeries.setData(prev_price.reverse());
-  var p = ph.lowestPrice;
+
+  // lowest price
+  var lowestPrice = ph.lowestPrice;
   const lowestPriceLine = {
-    price: p.value,
+    price: lowestPrice.value,
     color: 'red',
     lineStyle: 2, // LineStyle.Dashed
     axisLabelVisible: true,
-    title: 'lowest price',
+    title: 'lowest',
   };
   lineSeries.createPriceLine(lowestPriceLine);
+
+  // average price
+  console.log(prev_price);
+  const averagePrice = prev_price.reduce((total, next) => total + next.value, 0) / prev_price.length;
+  const averagePriceLine = {
+    price: averagePrice,
+    color: 'green',
+    lineStyle: 2, // LineStyle.Dashed
+    axisLabelVisible: true,
+    title: 'average',
+  };
+  lineSeries.createPriceLine(averagePriceLine);
+
   lineSeries.priceScale().applyOptions({
     autoScale: false,
     scaleMargins: {
@@ -49,6 +66,7 @@ function printChart(ph) {
   chart.applyOptions({
     localization: {
       priceFormatter: myPriceFormatter,
+      dateFormat: "dd MMM yyyy"
     },
   });
   chart.timeScale().fitContent();
@@ -137,7 +155,6 @@ function main(event) {
       if (scrapeTokopedia()) {
         clearInterval(timer);
         result = scrapeTokopedia()
-
         savePriceHistory(result);
       }
     }
@@ -147,7 +164,6 @@ function main(event) {
       if (scrapeShopee()) {
         clearInterval(timer);
         result = scrapeShopee()
-
         savePriceHistory(result);
       }
     }
