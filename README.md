@@ -1,7 +1,7 @@
 # Chrome Extension: Market Place DB ID - Price History
 
 Indonesian Marketplace Price History Database.
-<!-- If you like this project, support me by donating via [Saweria](https://saweria.co/wikan) -->
+If you like this project, support me by donating via [Saweria](https://saweria.co/wikan)
 
 ## Feature and limitation
 - Supports Tokopedia and Shopee.
