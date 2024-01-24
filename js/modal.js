@@ -23,6 +23,8 @@ const chart = LightweightCharts.createChart(
   document.getElementById('chart-container'),
   chartOptions
 );
+let cursor_x = 0;
+let cursor_y = 0;
 
 function printChart(ph) {
   var prev_price = JSON.parse(JSON.stringify(ph.prev_price));
@@ -86,6 +88,8 @@ function printChart(ph) {
     lineSeries2.setData(trendLineData);
   }
 
+  trackingTooltip(lineSeries);
+
   lineSeries.priceScale().applyOptions({
     autoScale: false,
     scaleMargins: {
@@ -101,7 +105,10 @@ function printChart(ph) {
     crosshair: {
       horzLine: {
         visible: false,
-        // labelVisible: false
+        labelVisible: false
+      },
+      vertLine: {
+        labelVisible: false
       }
     },
     grid: {
@@ -114,6 +121,57 @@ function printChart(ph) {
     }
   });
   chart.timeScale().fitContent();
+}
+
+function trackingTooltip(series) {
+  const container = document.getElementById('chart-container');
+  
+  const tooltipMargin = 30;
+
+  const tooltip = document.createElement('div');
+  tooltip.style = `width: 0px; height: 60px; position: absolute; display: none; padding: 8px; box-sizing: border-box; font-size: 12px; text-align: left; z-index: 1000; top: 12px; left: 12px; pointer-events: none; border: 1px solid; border-radius: 2px;font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;`;
+  tooltip.style.background = 'white';
+  tooltip.style.color = 'black';
+  tooltip.style.borderColor = 'black';
+  container.appendChild(tooltip);
+
+  chart.subscribeCrosshairMove(param => {
+    if (
+      param.point === undefined ||
+      !param.time ||
+      param.point.x < 0 ||
+      param.point.x > container.clientWidth ||
+      param.point.y < 0 ||
+      param.point.y > container.clientHeight
+    ) {
+      tooltip.style.display = 'none';
+    } else {
+      document.onmousemove = function(event) {
+        cursor_x = event.pageX;
+        cursor_y = event.pageY;
+      }
+      
+      tooltip.style.display = 'block';
+      const dateStr = param.time;
+      const data = param.seriesData.get(series);
+      const price = data.value !== undefined ? data.value : data.close;
+      const price_currency = myPriceFormatter(price);
+      let price_length = price.toString().length
+      price_length = price_length > 3 ? price_length - 3 : price_length;
+      tooltip.style.width = (105 + (10 * price_length)) + 'px';
+      tooltip.innerHTML = `<div style="font-size: 16px; margin: 4px 0px; color: ${'black'}">
+        ${price_currency}
+        </div><div style="color: ${'black'}">
+        ${dateStr}
+        </div>`;
+
+      let left = cursor_x + tooltipMargin;
+      let top = cursor_y + tooltipMargin;
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+  });
 }
 
 function insertNewPrice(ph, value) {
@@ -161,7 +219,6 @@ function savePriceHistory(result) {
     time: date,
     value: Number(result.value)
   };
-  // console.log(value);
 
   chrome.storage.local.get(["price_history"]).then((result) => {
     var ph = result.price_history;
