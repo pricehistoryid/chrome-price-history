@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.0] - 2024-01-24
+### Added
+- feature: brand new tooltips
+- feature: create price trend line
+### Fixed
+- fix: timezone fix and remove unused data from storage
+
 ## [0.1.0] - 2024-01-07
 ### Added
 - feature: add average price line
