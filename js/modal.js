@@ -56,6 +56,31 @@ function printChart(ph) {
   };
   lineSeries.createPriceLine(averagePriceLine);
 
+  // trend line
+  if (prev_price.length > 2) {
+    var trendline = createTrendLine(prev_price);
+    const lineSeries2 = chart.addLineSeries({
+      title: 'trend',
+      lastValueVisible: false,
+      priceLineVisible: false,
+      color: '#EE5A24',
+      crosshairMarkerVisible: false,
+      lineStyle: 2, // LineStyle.Dashed
+      lineWidth: 0.9,
+      // visible: false,
+    });
+    var trendLineData = [];
+    trendLineData.push({
+      time: prev_price[0].time,
+      value: trendline['first_point']
+    });
+    trendLineData.push({
+      time: prev_price[prev_price.length - 1].time,
+      value: trendline['last_point']
+    });
+    lineSeries2.setData(trendLineData);
+  }
+
   lineSeries.priceScale().applyOptions({
     autoScale: false,
     scaleMargins: {
@@ -68,6 +93,20 @@ function printChart(ph) {
       priceFormatter: myPriceFormatter,
       dateFormat: "dd MMM yyyy"
     },
+    crosshair: {
+      horzLine: {
+        visible: false,
+        // labelVisible: false
+      }
+    },
+    grid: {
+      vertLines: {
+        visible: false
+      },
+      horzLines: {
+        visible: false
+      }
+    }
   });
   chart.timeScale().fitContent();
 }
@@ -81,6 +120,32 @@ function insertNewPrice(ph, value) {
   ph.prev_price = new_prev_price;
   // console.log(JSON.stringify(ph));
   return ph;
+}
+
+function createTrendLine(prev_price) {
+  var n = prev_price.length;
+
+  const x_mean = (n + 1) / 2;
+  const y_mean = prev_price.reduce((total, next) => total + next.value, 0) / prev_price.length;
+  var nom = 0;
+  var denom = 0;
+  var m = 0;
+  var b = 0;
+  for (let i = 0; i < n; i++) {
+    const price = prev_price[i];
+    nom += ((i+1) - x_mean) * (price.value - y_mean);
+    denom += ((i+1) - x_mean) ** 2;
+  }
+
+  m = nom / denom;
+  b = y_mean - (m * x_mean);
+
+  var first_point = (m * 1) + b;
+  var last_point = (m * n) + b;
+  return {
+    first_point,
+    last_point
+  };
 }
 
 function savePriceHistory(result) {
