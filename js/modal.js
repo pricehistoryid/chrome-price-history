@@ -1,5 +1,7 @@
 // Get the current users primary locale
 const currentLocale = window.navigator.languages[0];
+// Timezone
+const tzoffset = (new Date()).getTimezoneOffset() * 60000;
 // Create a number format using Intl.NumberFormat
 const myPriceFormatter = Intl.NumberFormat(currentLocale, {
   style: 'currency',
@@ -21,38 +23,41 @@ const chart = LightweightCharts.createChart(
   document.getElementById('chart-container'),
   chartOptions
 );
-const lineSeries = chart.addLineSeries(
-  {
-    lastValueVisible: false,
-    priceLineVisible: false,
-  }
-);
 
 function printChart(ph) {
   var prev_price = JSON.parse(JSON.stringify(ph.prev_price));
 
+  // price line
+  const lineSeries = chart.addLineSeries(
+    {
+      // title: 'price',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    }
+  );
   lineSeries.setData(prev_price.reverse());
 
   // lowest price
   var lowestPrice = ph.lowestPrice;
   const lowestPriceLine = {
+    title: 'lowest',
     price: lowestPrice.value,
     color: 'red',
     lineStyle: 2, // LineStyle.Dashed
+    lineWidth: 1,
     axisLabelVisible: true,
-    title: 'lowest',
   };
   lineSeries.createPriceLine(lowestPriceLine);
 
   // average price
-  console.log(prev_price);
   const averagePrice = prev_price.reduce((total, next) => total + next.value, 0) / prev_price.length;
   const averagePriceLine = {
+    title: 'average',
     price: averagePrice,
     color: 'green',
     lineStyle: 2, // LineStyle.Dashed
+    lineWidth: 1,
     axisLabelVisible: true,
-    title: 'average',
   };
   lineSeries.createPriceLine(averagePriceLine);
 
@@ -151,7 +156,7 @@ function createTrendLine(prev_price) {
 function savePriceHistory(result) {
   var url = result.url;
   // var title = result.title;
-  const date = `${new Date().toISOString().split('T')[0]}`;
+  const date = `${(new Date(Date.now() - tzoffset)).toISOString().split('T')[0]}`;
   var value = {
     time: date,
     value: Number(result.value)
@@ -160,8 +165,8 @@ function savePriceHistory(result) {
 
   chrome.storage.local.get(["price_history"]).then((result) => {
     var ph = result.price_history;
-    // first time using extension
     if (!ph) {
+      // first time using extension
       ph = {}
       chrome.storage.local.set({ price_history: ph });
     }
@@ -173,39 +178,33 @@ function savePriceHistory(result) {
       var lowestPrice = this_ph.lowestPrice || value;
       lowestPrice = lowestPrice.value > value.value ? value : lowestPrice;
 
-      // value changed
+      // value changed or date changed
       if (
         this_ph.prev_price[0].value != value.value ||
         this_ph.prev_price[0].time != value.time
       ) {
-        this_ph = insertNewPrice(this_ph, value);
-        ph[url] = {
-          value: value,
-          prev_price: this_ph.prev_price,
-          lowestPrice: lowestPrice
-        };
-        printChart(ph[url]);
+        // value changed on the same day
+        if (this_ph.prev_price[0].time == value.time) {
+          ph[url]['prev_price'][0].value = value.value
+        // value changed on the different day
+        } else {
+          this_ph = insertNewPrice(this_ph, value);
+          ph[url] = {
+            prev_price: this_ph.prev_price,
+            lowestPrice: lowestPrice
+          };
+        }
         chrome.storage.local.set({ price_history: ph });
-        // value not changed
-      } else {
-        ph_unchanged = {
-          value: value,
-          prev_price: this_ph.prev_price,
-          lowestPrice: lowestPrice
-        };
-        printChart(ph_unchanged);
       }
-      // first time scrapped
+    // first time scrapped
     } else {
-      var lowestPrice = value;
       ph[url] = {
-        value: value,
         prev_price: [value],
-        lowestPrice: lowestPrice
+        lowestPrice: value
       };
-      printChart(ph[url]);
       chrome.storage.local.set({ price_history: ph });
     }
+    printChart(ph[url]);
   });
 }
 
