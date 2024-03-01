@@ -10,8 +10,14 @@
     "tabs",
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "identity",
+    "identity.email"
   ],
+  "background": {
+    "service_worker": "js/background.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
       "matches": [
