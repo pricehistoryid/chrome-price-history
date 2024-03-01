@@ -1,5 +1,4 @@
-function scrapeTokopedia() {
-  var url = window.location.href.split('?')[0];
+function scrapeTokopedia(url) {
   var titleEl = document.querySelector('#pdp_comp-product_content');
   if (titleEl) {
     var title = titleEl.firstElementChild.firstElementChild.textContent;
@@ -13,10 +12,9 @@ function scrapeTokopedia() {
   return null;
 }
 
-function scrapeShopee() {
-  var url = window.location.href.split('?')[0];
-  var titleEl = document.querySelector('._44qnta');
-  var priceEl = document.querySelector('.pqTWkA');
+function scrapeShopee(url) {
+  var titleEl = document.querySelector('.WBVL_7');
+  var priceEl = document.querySelector('.G27FPf');
   if ((titleEl && priceEl) && priceEl.textContent) {
     var title = titleEl.querySelector('span').textContent;
     var value = priceEl.textContent;
