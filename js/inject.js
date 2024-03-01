@@ -23,12 +23,7 @@ var parentPH = elFactory(
   {
     'href': '#',
     'class': 'ph-ext'
-  },
-  elFactory(
-    'div',
-    { 'class': 'ph-item ph-title' },
-    ''
-  )
+  }
 )
 document.body.appendChild(parentPH);
 
@@ -36,18 +31,41 @@ var modalContainer = elFactory(
   'div',
   { 'class': 'modal-container' },
   elFactory(
-    'span',
-    { 'class': 'close' },
-    '×'
-  ),
-  elFactory(
-    'div',
-    { 'class': 'modal-header' },
-    'Price History Scrapper'
-  ),
-  elFactory(
     'div',
     { 'class': 'modal-body' },
+    elFactory(
+      'fieldset',
+      { 'class': 'favorite-container' },
+      elFactory(
+        'legend',
+        {},
+        'Synced Items (Max 3)'
+      ),
+      elFactory(
+        'input',
+        {
+          'type': 'checkbox',
+          'class': 'ph-checkbox',
+          'id': 'favorite-checkbox',
+          'name': 'favorite-checkbox'
+        },
+      ),
+      elFactory(
+        'label',
+        {
+          'class': 'ph-checkbox-label',
+          'for': 'favorite-checkbox'
+        },
+        'Sync This Item'
+      ),
+      elFactory(
+        'div',
+        {
+          'class': 'favorite-list',
+          'id': 'favorite-list'
+        }
+      )
+    ),
     elFactory(
       'div',
       {
@@ -67,6 +85,14 @@ var modal = elFactory(
 document.body.appendChild(modal);
 
 addCustomStyle(`
+.ph-checkbox {
+  margin: 0.4rem;
+}
+
+.favorite-container {
+  font: 1rem 'Open Sauce One', sans-serif;
+}
+
 .ph-ext {
   position: fixed;
   width: 60px;
@@ -77,17 +103,6 @@ addCustomStyle(`
   background-image: url('https://raw.githubusercontent.com/wikankun/chrome-price-history/master/assets/price-history.png');
   border-radius: 50px;
   box-shadow: 2px 2px 3px #999;
-}
-
-.ph-item {
-  margin-top:22px;
-}
-
-.ph-title {
-  color: #ffffff;
-  text-align: center;
-  font-weight: 800;
-  font-family: 'Open Sauce One', sans-serif;
 }
 
 /* The Modal (background) */
@@ -111,10 +126,10 @@ addCustomStyle(`
   color: #000000;
   margin: auto;
   padding: 20px;
-  width: 660px;
-  min-width: 660px;
-  height: 380px;
-  min-height: 380px;
+  width: 860px;
+  min-width: 860px;
+  height: 340px;
+  min-height: 340px;
   overflow: auto;
   cursor: default;
   box-sizing: border-box;
@@ -125,7 +140,25 @@ addCustomStyle(`
 }
 
 .modal-body {
-  
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;  
+  justify-content: space-between;
+}
+
+.favorite-container {
+  width: 200px;
+  display: inline-block;
+}
+
+.favorite-list {
+  margin-top: 0.4rem;
+}
+
+.favorite-item {
+  width: 180px;
+  display: block;
+  margin-bottom: 0.4rem;
 }
 
 .close {
