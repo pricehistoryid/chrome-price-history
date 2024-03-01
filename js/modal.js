@@ -23,11 +23,11 @@ const chart = LightweightCharts.createChart(
   document.getElementById('chart-container'),
   chartOptions
 );
-let cursor_x = 0;
-let cursor_y = 0;
+let cursorX = 0;
+let cursorY = 0;
 
 function printChart(ph) {
-  var prev_price = JSON.parse(JSON.stringify(ph.prev_price));
+  var prevPrice = JSON.parse(JSON.stringify(ph.prevPrice));
 
   // price line
   const lineSeries = chart.addLineSeries(
@@ -37,7 +37,7 @@ function printChart(ph) {
       priceLineVisible: false,
     }
   );
-  lineSeries.setData(prev_price.reverse());
+  lineSeries.setData(prevPrice.reverse());
 
   // lowest price
   var lowestPrice = ph.lowestPrice;
@@ -52,7 +52,7 @@ function printChart(ph) {
   lineSeries.createPriceLine(lowestPriceLine);
 
   // average price
-  const averagePrice = prev_price.reduce((total, next) => total + next.value, 0) / prev_price.length;
+  const averagePrice = prevPrice.reduce((total, next) => total + next.value, 0) / prevPrice.length;
   const averagePriceLine = {
     title: 'average',
     price: averagePrice,
@@ -64,8 +64,8 @@ function printChart(ph) {
   lineSeries.createPriceLine(averagePriceLine);
 
   // trend line
-  if (prev_price.length > 2) {
-    var trendline = createTrendLine(prev_price);
+  if (prevPrice.length > 2) {
+    var trendline = createTrendLine(prevPrice);
     const lineSeries2 = chart.addLineSeries({
       title: 'trend',
       lastValueVisible: false,
@@ -78,12 +78,12 @@ function printChart(ph) {
     });
     var trendLineData = [];
     trendLineData.push({
-      time: prev_price[0].time,
-      value: trendline['first_point']
+      time: prevPrice[0].time,
+      value: trendline['firstPoint']
     });
     trendLineData.push({
-      time: prev_price[prev_price.length - 1].time,
-      value: trendline['last_point']
+      time: prevPrice[prevPrice.length - 1].time,
+      value: trendline['lastPoint']
     });
     lineSeries2.setData(trendLineData);
   }
@@ -147,26 +147,26 @@ function trackingTooltip(series) {
       tooltip.style.display = 'none';
     } else {
       document.onmousemove = function(event) {
-        cursor_x = event.pageX;
-        cursor_y = event.pageY;
+        cursorX = event.pageX;
+        cursorY = event.pageY;
       }
       
       tooltip.style.display = 'block';
       const dateStr = param.time;
       const data = param.seriesData.get(series);
       const price = data.value !== undefined ? data.value : data.close;
-      const price_currency = myPriceFormatter(price);
-      let price_length = price.toString().length
-      price_length = price_length > 3 ? price_length - 3 : price_length;
-      tooltip.style.width = (105 + (10 * price_length)) + 'px';
+      const priceCurrency = myPriceFormatter(price);
+      let priceLength = price.toString().length
+      priceLength = priceLength > 3 ? priceLength - 3 : priceLength;
+      tooltip.style.width = (105 + (10 * priceLength)) + 'px';
       tooltip.innerHTML = `<div style="font-size: 16px; margin: 4px 0px; color: ${'black'}">
-        ${price_currency}
+        ${priceCurrency}
         </div><div style="color: ${'black'}">
         ${dateStr}
         </div>`;
 
-      let left = cursor_x + tooltipMargin;
-      let top = cursor_y + tooltipMargin;
+      let left = cursorX + tooltipMargin;
+      let top = cursorY + tooltipMargin;
 
       tooltip.style.left = left + 'px';
       tooltip.style.top = top + 'px';
@@ -175,39 +175,39 @@ function trackingTooltip(series) {
 }
 
 function insertNewPrice(ph, value) {
-  var new_prev_price = [];
-  new_prev_price.push(value);
-  for (let i = 0; i < ph.prev_price.length; i++) {
-    new_prev_price.push(ph.prev_price[i]);
+  var newPrevPrice = [];
+  newPrevPrice.push(value);
+  for (let i = 0; i < ph.prevPrice.length; i++) {
+    newPrevPrice.push(ph.prevPrice[i]);
   }
-  ph.prev_price = new_prev_price;
+  ph.prevPrice = newPrevPrice;
   // console.log(JSON.stringify(ph));
   return ph;
 }
 
-function createTrendLine(prev_price) {
-  var n = prev_price.length;
+function createTrendLine(prevPrice) {
+  var n = prevPrice.length;
 
-  const x_mean = (n + 1) / 2;
-  const y_mean = prev_price.reduce((total, next) => total + next.value, 0) / prev_price.length;
+  const xMean = (n + 1) / 2;
+  const yMean = prevPrice.reduce((total, next) => total + next.value, 0) / prevPrice.length;
   var nom = 0;
   var denom = 0;
   var m = 0;
   var b = 0;
   for (let i = 0; i < n; i++) {
-    const price = prev_price[i];
-    nom += ((i+1) - x_mean) * (price.value - y_mean);
-    denom += ((i+1) - x_mean) ** 2;
+    const price = prevPrice[i];
+    nom += ((i+1) - xMean) * (price.value - yMean);
+    denom += ((i+1) - xMean) ** 2;
   }
 
   m = nom / denom;
-  b = y_mean - (m * x_mean);
+  b = yMean - (m * xMean);
 
-  var first_point = (m * 1) + b;
-  var last_point = (m * n) + b;
+  var firstPoint = (m * 1) + b;
+  var lastPoint = (m * n) + b;
   return {
-    first_point,
-    last_point
+    firstPoint,
+    lastPoint
   };
 }
 
@@ -222,32 +222,34 @@ function savePriceHistory(result) {
 
   chrome.storage.local.get(["price_history"]).then((result) => {
     var ph = result.price_history;
+    // first time using extension
     if (!ph) {
-      // first time using extension
-      ph = {}
-      chrome.storage.local.set({ price_history: ph });
+      ph = {};
     }
     // console.log(JSON.stringify(ph));
 
-    // case not first time scrapped
+    // have been scrapped
     if (ph[url]) {
-      var this_ph = ph[url];
-      var lowestPrice = this_ph.lowestPrice || value;
+      var thisPh = ph[url];
+      var lowestPrice = thisPh.lowestPrice || value;
       lowestPrice = lowestPrice.value > value.value ? value : lowestPrice;
 
       // value changed or date changed
       if (
-        this_ph.prev_price[0].value != value.value ||
-        this_ph.prev_price[0].time != value.time
+        thisPh.prevPrice[0].value != value.value ||
+        thisPh.prevPrice[0].time != value.time
       ) {
-        // value changed on the same day
-        if (this_ph.prev_price[0].time == value.time) {
-          ph[url]['prev_price'][0].value = value.value
-        // value changed on the different day
+        // different value on the same day
+        if (
+          thisPh.prevPrice[0].time == value.time &&
+          thisPh.prevPrice[0].value > value.value
+        ) {
+          ph[url]['prevPrice'][0].value = value.value;
+        // different day
         } else {
-          this_ph = insertNewPrice(this_ph, value);
+          thisPh = insertNewPrice(thisPh, value);
           ph[url] = {
-            prev_price: this_ph.prev_price,
+            prevPrice: thisPh.prevPrice,
             lowestPrice: lowestPrice
           };
         }
@@ -256,37 +258,11 @@ function savePriceHistory(result) {
     // first time scrapped
     } else {
       ph[url] = {
-        prev_price: [value],
+        prevPrice: [value],
         lowestPrice: value
       };
       chrome.storage.local.set({ price_history: ph });
     }
     printChart(ph[url]);
   });
-}
-
-function main(event) {
-  var timer = setInterval(checkForFinish, 500);
-
-  function checkForFinish() {
-    var url = window.location.href;
-
-    // tokopedia
-    if (url.includes('tokopedia')) {
-      if (scrapeTokopedia()) {
-        clearInterval(timer);
-        result = scrapeTokopedia()
-        savePriceHistory(result);
-      }
-    }
-
-    // shopee
-    if (url.includes('shopee')) {
-      if (scrapeShopee()) {
-        clearInterval(timer);
-        result = scrapeShopee()
-        savePriceHistory(result);
-      }
-    }
-  }
 }
