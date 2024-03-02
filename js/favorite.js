@@ -57,6 +57,8 @@ function checkFavorite(url) {
         }
         locals[url] = favorites[url];
         chrome.storage.local.set({ price_history: locals });
+      } else if (Object.keys(favorites).length >= 3) {
+        document.getElementById('favorite-checkbox').disabled = true;
       }
       injectFavorite(favorites);
       chrome.storage.sync.set({ price_history_favorites: favorites });
