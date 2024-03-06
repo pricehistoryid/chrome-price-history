@@ -245,8 +245,11 @@ function savePriceHistory(result) {
           thisPh.prevPrice[0].value > value.value
         ) {
           ph[url]['prevPrice'][0].value = value.value;
+        }
         // different day
-        } else {
+        if (
+          thisPh.prevPrice[0].time != value.time
+        ) {
           thisPh = insertNewPrice(thisPh, value);
           ph[url] = {
             prevPrice: thisPh.prevPrice,
