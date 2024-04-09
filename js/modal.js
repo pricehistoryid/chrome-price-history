@@ -35,6 +35,7 @@ function printChart(ph) {
       // title: 'price',
       lastValueVisible: false,
       priceLineVisible: false,
+      color: '#2C7BB6',
     }
   );
   lineSeries.setData(prevPrice.reverse());
@@ -44,9 +45,9 @@ function printChart(ph) {
   const lowestPriceLine = {
     title: 'lowest',
     price: lowestPrice.value,
-    color: 'red',
+    color: '#D7191C',
     lineStyle: 2, // LineStyle.Dashed
-    lineWidth: 1,
+    lineWidth: 1.5,
     axisLabelVisible: true,
   };
   lineSeries.createPriceLine(lowestPriceLine);
@@ -56,9 +57,9 @@ function printChart(ph) {
   const averagePriceLine = {
     title: 'average',
     price: averagePrice,
-    color: 'green',
+    color: '#FDAE61',
     lineStyle: 2, // LineStyle.Dashed
-    lineWidth: 1,
+    lineWidth: 1.5,
     axisLabelVisible: true,
   };
   lineSeries.createPriceLine(averagePriceLine);
@@ -70,10 +71,10 @@ function printChart(ph) {
       title: 'trend',
       lastValueVisible: false,
       priceLineVisible: false,
-      color: '#EE5A24',
+      color: '#008837',
       crosshairMarkerVisible: false,
-      lineStyle: 2, // LineStyle.Dashed
-      lineWidth: 0.9,
+      lineStyle: 3, // LineStyle.Dashed
+      lineWidth: 1,
       // visible: false,
     });
     var trendLineData = [];
@@ -213,7 +214,7 @@ function createTrendLine(prevPrice) {
 
 function savePriceHistory(result) {
   var url = result.url;
-  // var title = result.title;
+  // var name = result.name;
   const date = `${(new Date(Date.now() - tzoffset)).toISOString().split('T')[0]}`;
   var value = {
     time: date,
@@ -228,7 +229,7 @@ function savePriceHistory(result) {
     }
     // console.log(JSON.stringify(ph));
 
-    // have been scrapped
+    // have been scraped
     if (ph[url]) {
       var thisPh = ph[url];
       var lowestPrice = thisPh.lowestPrice || value;
@@ -258,7 +259,7 @@ function savePriceHistory(result) {
         }
         chrome.storage.local.set({ price_history: ph });
       }
-    // first time scrapped
+    // first time scraped
     } else {
       ph[url] = {
         prevPrice: [value],

@@ -1,6 +1,6 @@
 function main(event) {
   // get url
-  const urlPieces = [location.protocol, '//', location.host, location.pathname];
+  const urlPieces = [location.host, location.pathname];
   let url = urlPieces.join('');
 
   // continously scrape page every 500ms until data gathered

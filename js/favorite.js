@@ -33,7 +33,7 @@ function injectFavorite(favorites) {
       { 'class': 'favorite-item' },
       elFactory(
         'a',
-        { 'href': key },
+        { 'href': 'https://' + key },
         key.split('/').pop()
       )
     );
