@@ -15,7 +15,7 @@
     "identity.email"
   ],
   "background": {
-    "service_worker": "js/background.js",
+    "service_worker": "src/js/background.js",
     "type": "module"
   },
   "content_scripts": [
@@ -25,14 +25,14 @@
         "https://shopee.co.id/*"
       ],
       "js": [
-        "js/lightweight-charts.standalone.production.js",
-        "js/main.js",
-        "js/inject.js",
-        "js/scraper.js",
-        "js/modal.js",
-        "js/event-listener.js",
-        "js/user-info.js",
-        "js/favorite.js"
+        "assets/js/lightweight-charts.standalone.production.js",
+        "src/js/main.js",
+        "src/js/inject.js",
+        "src/js/scraper.js",
+        "src/js/modal.js",
+        "src/js/event-listener.js",
+        "src/js/user-info.js",
+        "src/js/favorite.js"
       ],
       "run_at": "document_end"
     }
