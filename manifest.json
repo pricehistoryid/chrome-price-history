@@ -15,7 +15,7 @@
     "identity.email"
   ],
   "background": {
-    "service_worker": "src/js/background.js",
+    "service_worker": "src/background/background.js",
     "type": "module"
   },
   "content_scripts": [
@@ -26,13 +26,13 @@
       ],
       "js": [
         "assets/js/lightweight-charts.standalone.production.js",
-        "src/js/main.js",
-        "src/js/inject.js",
-        "src/js/scraper.js",
-        "src/js/modal.js",
-        "src/js/event-listener.js",
-        "src/js/user-info.js",
-        "src/js/favorite.js"
+        "src/content/main.js",
+        "src/content/inject.js",
+        "src/content/scraper.js",
+        "src/content/modal.js",
+        "src/content/event-listener.js",
+        "src/content/user-info.js",
+        "src/content/favorite.js"
       ],
       "run_at": "document_end"
     }
