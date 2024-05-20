@@ -3,7 +3,7 @@ function main(event) {
   const urlPieces = [location.host, location.pathname];
   let url = urlPieces.join('');
 
-  // continously scrape page every 500ms until data gathered
+  // continously scrape page every 1000ms until data gathered
   const timer = setInterval(afterLoad, 1000);
 
   async function afterLoad() {
