@@ -44,6 +44,7 @@ function injectFavorite(favorites) {
 function checkFavorite(url) {
   chrome.storage.sync.get('price_history_favorites').then((syncres) => {
     chrome.storage.local.get(["price_history"]).then((localres) => {
+      document.getElementById('favorite-list').innerHTML = '';
       var favorites = syncres.price_history_favorites;
       var locals = localres.price_history;
       if (!favorites) {
