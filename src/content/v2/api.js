@@ -23,6 +23,6 @@ function updateProductPrice(data) {
 
   fetch(apiUrl, requestOptions)
     .then(response => response.text())
-    .then(result => {})
-    .catch(error => {});
+    .then(result => { })
+    .catch(error => { });
 }

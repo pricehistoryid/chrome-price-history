@@ -3,11 +3,11 @@ function tokopediaCleanPrice(value) {
 }
 
 function tokopediaCleanImageUrl(imageUrl) {
-  return imageUrl.replace("url(", "").replace(")","").replaceAll(`"`, "").replace("100-square", "700");
+  return imageUrl.replace("url(", "").replace(")", "").replaceAll(`"`, "").replace("100-square", "700");
 }
 
 function tokopediaCleanSold(sold) {
-  return sold.replace("+","").replace("rb", "000").replaceAll(" ", "")
+  return sold.replace("+", "").replace("rb", "000").replaceAll(" ", "")
 }
 
 function scrapeTokopedia(url) {
@@ -17,7 +17,7 @@ function scrapeTokopedia(url) {
 
     var value = document.querySelector('.price').textContent;
     value = tokopediaCleanPrice(value);
-    
+
     var imageUrl = document.querySelector("#pdp_comp-product_media > div > div.css-fpocxp > button > div > div.magnifier").style["background-image"];
     imageUrl = tokopediaCleanImageUrl(imageUrl);
 
