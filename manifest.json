@@ -21,18 +21,16 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.tokopedia.com/*",
-        "https://shopee.co.id/*"
+        "https://www.tokopedia.com/*/*"
       ],
       "js": [
         "assets/js/lightweight-charts.standalone.production.js",
-        "src/content/main.js",
-        "src/content/inject.js",
-        "src/content/scraper.js",
-        "src/content/modal.js",
-        "src/content/event-listener.js",
-        "src/content/user-info.js",
-        "src/content/favorite.js"
+        "src/content/v2/inject.js",
+        "src/content/v2/scraper.js",
+        "src/content/v2/price-history.js",
+        "src/content/v2/chart.js",
+        "src/content/v2/api.js",
+        "src/content/v2/event-listener.js"
       ],
       "run_at": "document_end"
     }
