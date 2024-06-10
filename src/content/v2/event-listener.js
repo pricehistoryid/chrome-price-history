@@ -40,7 +40,7 @@ function main(event) {
   chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     if (request.type === 'urlChanged') {
       let url = request.url;
-      
+
       const timer = setInterval(afterLoad, 2000);
 
       function afterLoad() {

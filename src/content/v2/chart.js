@@ -130,11 +130,11 @@ class ChartManager {
       ) {
         tooltip.style.display = 'none';
       } else {
-        document.onmousemove = function(event) {
+        document.onmousemove = function (event) {
           cursorX = event.pageX;
           cursorY = event.pageY;
         }
-        
+
         const dateStr = param.time;
         const data = param.seriesData.get(this.series);
         const price = data.value !== undefined ? data.value : data.close;
