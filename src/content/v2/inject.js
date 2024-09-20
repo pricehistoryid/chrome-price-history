@@ -35,40 +35,6 @@ var modalContainer = elFactory(
     'div',
     { 'class': 'modal-body' },
     elFactory(
-      'fieldset',
-      { 'class': 'favorite-container' },
-      elFactory(
-        'legend',
-        {},
-        'Synced Items (Max 3)'
-      ),
-      elFactory(
-        'input',
-        {
-          'type': 'checkbox',
-          'class': 'ph-checkbox',
-          'id': 'favorite-checkbox',
-          'name': 'favorite-checkbox',
-          'disabled': '',
-        },
-      ),
-      elFactory(
-        'label',
-        {
-          'class': 'ph-checkbox-label disabled',
-          'for': 'favorite-checkbox'
-        },
-        'Sync This Item (temporarily disabled)'
-      ),
-      elFactory(
-        'div',
-        {
-          'class': 'favorite-list',
-          'id': 'favorite-list'
-        }
-      )
-    ),
-    elFactory(
       'div',
       {
         'class': 'chart',
@@ -89,10 +55,6 @@ document.body.appendChild(modal);
 addCustomStyle(`
 .ph-checkbox {
   margin: 0.4rem;
-}
-
-.favorite-container {
-  font: 1rem 'Open Sauce One', sans-serif;
 }
 
 .ph-ext {
@@ -128,8 +90,8 @@ addCustomStyle(`
   color: #000000;
   margin: auto;
   padding: 20px;
-  width: 860px;
-  min-width: 860px;
+  width: 640px;
+  min-width: 640px;
   height: 340px;
   min-height: 340px;
   overflow: auto;
@@ -146,21 +108,6 @@ addCustomStyle(`
   flex-direction: row;
   flex-wrap: nowrap;  
   justify-content: space-between;
-}
-
-.favorite-container {
-  width: 200px;
-  display: inline-block;
-}
-
-.favorite-list {
-  margin-top: 0.4rem;
-}
-
-.favorite-item {
-  width: 180px;
-  display: block;
-  margin-bottom: 0.4rem;
 }
 
 .close {
