@@ -1,5 +1,5 @@
 function updateProductPrice(data) {
-  const apiUrl = "http://localhost:8000/price/";
+  const apiUrl = "http://localhost:8000/api/v1/price";
 
   var myHeaders = new Headers();
   myHeaders.append("Authorization", "Bearer very-secret-token");
