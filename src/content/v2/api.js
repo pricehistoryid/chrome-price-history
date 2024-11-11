@@ -9,10 +9,10 @@ function updateProductPrice(data) {
     "url": data.url,
     "name": data.name,
     "image_url": data.imageUrl,
-    "price": data.value,
-    "rating": data.rating,
-    "sold": data.sold,
-  });
+    "price": parseInt(data.value),
+    "rating": parseFloat(data.rating),
+    "sold": parseInt(data.sold),
+  }, null, 2);
 
   var requestOptions = {
     method: 'POST',
