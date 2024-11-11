@@ -1,5 +1,5 @@
 function tokopediaCleanPrice(value) {
-  return value.replaceAll('.', '').replace(/[^0-9.-]+/g, "");
+  return value.replaceAll(".", "").replace(/[^0-9.-]+/g, "");
 }
 
 function tokopediaCleanImageUrl(imageUrl) {
@@ -11,11 +11,11 @@ function tokopediaCleanSold(sold) {
 }
 
 function scrapeTokopedia(url) {
-  var nameEl = document.querySelector('#pdp_comp-product_content');
+  var nameEl = document.querySelector("#pdp_comp-product_content");
   if (nameEl) {
     var name = nameEl.firstElementChild.firstElementChild.textContent;
 
-    var value = document.querySelector('.price').textContent;
+    var value = document.querySelector(".price").textContent;
     value = tokopediaCleanPrice(value);
 
     var imageUrl = document.querySelector("#pdp_comp-product_media > div > div.css-fpocxp > button > div > div.magnifier").style["background-image"];
