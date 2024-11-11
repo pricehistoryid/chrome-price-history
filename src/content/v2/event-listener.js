@@ -11,6 +11,22 @@ window.onclick = function (event) {
   }
 }
 
+function processScraping(ph, chart, timer, url) {
+  if (url.includes('tokopedia')) {
+    const result = scrapeTokopedia(url);
+    if (result) {
+      updateProductPrice(result);
+      try {
+        chart.clear();
+      } catch (error) { console.log(error) }
+      chart.init();
+      ph.save(result, chart);
+      // ph.print(url, chart);
+      clearInterval(timer);
+    }
+  }
+}
+
 function main(event) {
   const urlPieces = [location.host, location.pathname];
   let url = urlPieces.join('');
@@ -21,20 +37,7 @@ function main(event) {
   const timer = setInterval(afterLoad, 2000);
 
   function afterLoad() {
-
-    if (url.includes('tokopedia')) {
-      const result = scrapeTokopedia(url);
-      if (result) {
-        updateProductPrice(result);
-        try {
-          chart.clear();
-        } catch (error) { console.log(error) }
-        chart.init();
-        ph.save(result, chart);
-        // ph.print(url, chart);
-        clearInterval(timer);
-      }
-    }
+    processScraping(ph, chart, timer, url);
   }
 
   chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -44,20 +47,7 @@ function main(event) {
       const timer = setInterval(afterLoad, 2000);
 
       function afterLoad() {
-
-        if (url.includes('tokopedia')) {
-          const result = scrapeTokopedia(url);
-          if (result) {
-            // updateProductPrice(result);
-            try {
-              chart.clear();
-            } catch (error) { console.log(error) }
-            chart.init();
-            ph.save(result, chart);
-            // ph.print(url, chart);
-            clearInterval(timer);
-          }
-        }
+        processScraping(ph, chart, timer, url);
       }
     }
   });
