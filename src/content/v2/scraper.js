@@ -28,7 +28,7 @@ function scrapeTokopedia(url) {
     }
 
     try {
-      var sold = document.querySelector("#pdp_comp-product_content > div > div.css-bczdt6 > div > p:nth-child(1)").lastChild.textContent;
+      var sold = document.querySelector("#pdp_comp-product_content > div > div.css-bczdt6 > div > div > div > p").childNodes[2].textContent;
       sold = tokopediaCleanSold(sold);
     } catch (error) {
       var sold = null;
