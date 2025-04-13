@@ -18,7 +18,7 @@ function scrapeTokopedia(url) {
     var value = document.querySelector(".price").textContent;
     value = tokopediaCleanPrice(value);
 
-    var imageUrl = document.querySelector("#pdp_comp-product_media > div > div.css-fpocxp > button > div > div.magnifier").style["background-image"];
+    var imageUrl = document.querySelector("#pdp_comp-product_media > div > div > button > div > div.magnifier").style["background-image"];
     imageUrl = tokopediaCleanImageUrl(imageUrl);
 
     try {
