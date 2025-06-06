@@ -64,7 +64,7 @@ addCustomStyle(`
   bottom: 40px;
   right: 40px;
   background-size: contain;
-  background-image: url('https://raw.githubusercontent.com/wikankun/chrome-price-history/master/assets/price-history.png');
+  background-image: url('https://raw.githubusercontent.com/pricehistoryid/chrome-price-history/master/assets/price-history-128.png');
   border-radius: 50px;
   box-shadow: 2px 2px 3px #999;
 }
