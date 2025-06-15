@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.4.0] - 2025-06-16
+- 1c5b1f9 feat: new logo
+- c6c50cd fix: query selector on tokopedia image
+
 ## [0.3.0] - 2024-12-16
 - 094e411 feat: finalizes for pricehistory web app
 - 728cbc4 fix: remove url path parameter
