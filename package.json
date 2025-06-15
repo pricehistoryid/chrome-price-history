@@ -1,0 +1,23 @@
+{
+  "name": "pricehistoryid",
+  "version": "0.0.3",
+  "description": "Log product's prices from your favorite Indonesian online marketplace",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "lightweight-charts": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "typescript": "^5.8.3",
+    "wxt": "^0.20.7"
+  }
+}
