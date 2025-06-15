@@ -1,0 +1,59 @@
+name: Auto Release on "release:*" commit
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release:
+    if: contains(github.event.head_commit.message, 'release:')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for git log
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Extract version/tag from commit message
+        id: extract_tag
+        run: |
+          message="${{ github.event.head_commit.message }}"
+          tag=$(echo "$message" | grep -oE '(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)')
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog from previous tag to HEAD
+        id: changelog
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$latest_tag" ]; then
+            log=$(git log "$latest_tag"..HEAD --pretty=format:"%h %s")
+          else
+            log=$(git log --pretty=format:"%h %s")
+          fi
+          echo "$log"
+          echo "log<<EOF" >> $GITHUB_OUTPUT
+          echo "Changelog:" >> $GITHUB_OUTPUT
+          echo "$log" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create new Git tag
+        run: |
+          git tag ${{ steps.extract_tag.outputs.tag }}
+          git push origin ${{ steps.extract_tag.outputs.tag }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.extract_tag.outputs.tag }}
+          name: Release ${{ steps.extract_tag.outputs.tag }}
+          body: ${{ steps.changelog.outputs.log }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
