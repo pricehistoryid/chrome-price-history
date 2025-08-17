@@ -8,7 +8,7 @@ export function cleanImageUrl(imageUrl: string): string {
   return imageUrl
     .replace('url(', '')
     .replace(')', '')
-    .replaceAll(`'`, '')
+    .replaceAll('"', '')
     .replace('100-square', '700');
 }
 

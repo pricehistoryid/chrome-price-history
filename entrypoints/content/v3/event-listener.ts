@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-type tokopediaPageType = 'pdp' | 'wishlist' | 'storeProduct' | 'search';
+type tokopediaPageType = 'pdp' | 'wishlist' | 'merchant' | 'search';
 
 interface tokopediaResult {
   pageType: tokopediaPageType | null,
@@ -41,14 +41,13 @@ function modalEventListener(modal: HTMLDivElement, modalBtn: HTMLButtonElement) 
   });
 }
 
-function scrapeTokopedia(url: string): tokopediaResult {
+async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
   const parsedUrl = new URL(`https://${url}`);
   const path = parsedUrl.pathname;
-  console.log(path);
 
   // PDP (product detail page)
   if (/^\/[^/]+\/[^/]+-\d+/.test(path)) {
-    const result = scrapePDP(url);
+    const result = await scrapePDP(url);
     return {
       pageType: 'pdp',
       result: result ? [result] : null
@@ -57,7 +56,7 @@ function scrapeTokopedia(url: string): tokopediaResult {
 
   // Wishlist
   if (path.startsWith('/wishlist/')) {
-    const result = scrapeWishlist();
+    const result = await scrapeWishlist();
     return {pageType: 'wishlist', result};
   }
 
@@ -72,62 +71,79 @@ function scrapeTokopedia(url: string): tokopediaResult {
   return {pageType: null, result: null};
 }
 
-function processScraping(
+function setupModal() {
+  if (!document.body.contains(modalBtn)) {
+    document.body.appendChild(modalBtn);
+    document.body.appendChild(modal);
+    modalEventListener(modal, modalBtn);
+  }
+}
+
+function teardownModal() {
+  modalBtn.remove();
+  modal.remove();
+}
+
+function resetChart(chart: ChartManager) {
+  try {
+    chart.clear();
+  } catch (error) {
+    console.error('Error clearing chart:', error);
+  }
+  chart.init();
+}
+
+async function processScraping(
   ph: PriceHistory,
   chart: ChartManager,
-  timer: NodeJS.Timeout,
   url: string
 ) {
   if (url.includes('tokopedia')) {
-    console.log('scrape tokopedia');
-    // need to detect tokopedia url type (PDP, search, merchant, etc) -> if there's product price then scrape and clearInterval
-    const result = scrapeTokopedia(url);
-    console.log(result);
+    const result = await scrapeTokopedia(url);
 
-    if (result.pageType == 'pdp' && result.result) {
-      document.body.appendChild(modalBtn);
-      document.body.appendChild(modal);
+    switch (result.pageType) {
+      case 'pdp': {
+        if (!result.result) return;
 
-      modalEventListener(modal, modalBtn);
-      try {
-        chart.clear();
-      } catch (error) {
-        console.error('Error clearing chart:', error);
+        setupModal();
+        resetChart(chart);
+        ph.save(result.result[0], chart);
+
+        updateProductPrice(result.result[0]);
+        break;
       }
-      chart.init();
-      ph.save(result.result[0], chart);
 
-      updateProductPrice(result.result[0]);
-    } else {
-      modalBtn.remove();
-      modal.remove();
-    }
+      case 'wishlist': {
+        teardownModal();
+        if (!result.result) return;
+        result.result.forEach(product => updateProductPrice(product));
+        break;
+      }
 
-    if (result.pageType == 'wishlist' && result.result) {
-      result.result.forEach(product => {
-        updateProductPrice(product);
-      });
+      default: {
+        teardownModal();
+        break;
+      }
     }
   }
-  clearInterval(timer);
 }
 
 export function main() {
   const ph = new PriceHistory();
   const chart = window.priceHistoryParam.chart;
 
-  let url = `${location.host}${location.pathname}`;
-  let timer = setInterval(afterLoad, import.meta.env.WXT_REFRESH_INTERVAL);
+  function handleUrlChange() {
+    let url = `${location.host}${location.pathname}`;
+    console.log('[pricehistoryid] URL changed →', url);
 
-  function afterLoad() {
-    processScraping(ph, chart, timer, url);
+    processScraping(ph, chart, url);
   }
+
+  handleUrlChange();
 
   chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
     if (request.type === 'urlChanged') {
-      url = `${location.host}${location.pathname}`;
-      console.log(url);
-      timer = setInterval(afterLoad, import.meta.env.WXT_REFRESH_INTERVAL);
+      handleUrlChange();
     }
   });
 }
