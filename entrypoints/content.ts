@@ -6,6 +6,10 @@ export default defineContentScript({
   runAt: 'document_end',
   main() {
     // Kick things off
-    window.addEventListener('load', main);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      main();
+    } else {
+      window.addEventListener('DOMContentLoaded', main, { once: true });
+    }
   },
 });
