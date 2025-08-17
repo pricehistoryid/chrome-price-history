@@ -5,7 +5,7 @@ export default defineBackground(() => {
 
       if (
         url &&
-        /^https:\/\/.*\.tokopedia\.com\/.*\/.*/.test(url)
+        /^https:\/\/.*\.tokopedia\.com\/.+/.test(url)
       ) {
         const cleanedUrl = url.replace(/^https?:\/\//, '');
 
