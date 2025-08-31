@@ -1,6 +1,6 @@
 import { ChartManager } from './chart';
-import { scrapePDP } from './scraper/tokopedia/pdp'; // Assuming you have this
-import { PriceHistory } from './price-history'; // Assuming you have this
+import { scrapePDP } from './scraper/tokopedia/pdp';
+import { PriceHistory } from './price-history';
 import { updateProductPrice } from './api';
 import { modalBtn, modal } from './inject'
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
@@ -57,7 +57,10 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
   // Wishlist
   if (path.startsWith('/wishlist/')) {
     const result = await scrapeWishlist();
-    return {pageType: 'wishlist', result};
+    return {
+      pageType: 'wishlist',
+      result: result
+    };
   }
 
   // // Search page
@@ -68,7 +71,7 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
   // if (/^\/[^/]+\/product$/.test(path)) {
   // }
 
-  return {pageType: null, result: null};
+  return { pageType: null, result: null };
 }
 
 function setupModal() {
