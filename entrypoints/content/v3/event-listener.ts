@@ -42,7 +42,7 @@ function modalEventListener(modal: HTMLDivElement, modalBtn: HTMLButtonElement) 
 }
 
 async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
-  const parsedUrl = new URL(`https://${url}`);
+  const parsedUrl = new URL(url);
   const path = parsedUrl.pathname;
 
   // PDP (product detail page)
@@ -136,7 +136,7 @@ export function main() {
   const chart = window.priceHistoryParam.chart;
 
   function handleUrlChange() {
-    let url = `${location.host}${location.pathname}`;
+    let url = `${location.origin}${location.pathname}`;
     console.log('[pricehistoryid] URL changed →', url);
 
     processScraping(ph, chart, url);
