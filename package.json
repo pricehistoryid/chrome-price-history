@@ -1,6 +1,6 @@
 {
   "name": "pricehistoryid",
-  "version": "0.0.3",
+  "version": "1.0.0",
   "description": "Log product's prices from your favorite Indonesian online marketplace",
   "type": "module",
   "scripts": {
