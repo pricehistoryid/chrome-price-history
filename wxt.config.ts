@@ -29,7 +29,7 @@ export default defineConfig({
   vite: () => ({
     build: {
       target: 'esnext',
-      minify: 'terser'
+      minify: false
     }
   }),
   zip: {
