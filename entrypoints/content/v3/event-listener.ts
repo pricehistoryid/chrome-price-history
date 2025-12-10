@@ -31,13 +31,53 @@ function modalEventListener(modal: HTMLDivElement, modalBtn: HTMLButtonElement) 
     if (modal) modal.style.display = 'block';
   });
 
-  // Close modal on outside click
+  // Close modal on outside click and cleanup
   window.addEventListener('click', (event) => {
     if (event.target === modal) {
       if (modal) {
         modal.style.display = 'none';
+        // Clean up chart when modal closes
+        if (window.priceHistoryParam?.chart) {
+          window.priceHistoryParam.chart.clear();
+        }
       }
     }
+  });
+
+  // Handle escape key to close modal and cleanup
+  const handleEscapeKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && modal.style.display === 'block') {
+      modal.style.display = 'none';
+      if (window.priceHistoryParam?.chart) {
+        window.priceHistoryParam.chart.clear();
+      }
+    }
+  };
+
+  window.addEventListener('keydown', handleEscapeKey);
+
+  // Cleanup on page unload
+  const handlePageUnload = () => {
+    if (window.priceHistoryParam?.chart) {
+      window.priceHistoryParam.chart.destroy();
+    }
+    window.removeEventListener('keydown', handleEscapeKey);
+  };
+
+  window.addEventListener('beforeunload', handlePageUnload);
+
+  // Listen for spa/navigation changes
+  const observer = new MutationObserver(() => {
+    // Check if modal is still in DOM
+    if (!document.contains(modal)) {
+      handlePageUnload();
+      observer.disconnect();
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
   });
 }
 
