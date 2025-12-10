@@ -204,24 +204,101 @@ export class ChartManager {
   }
 
   clear() {
-    if (this.chart) {
-      if (this.series) {
+    try {
+      // Clean up event listeners
+      if (this.chart) {
+        this.chart.unsubscribeCrosshairMove();
+      }
+
+      // Clean up global mouse move listener
+      document.onmousemove = null;
+
+      // Remove tooltip if it exists
+      const container = document.getElementById(this.containerId);
+      if (container) {
+        const tooltip = container.querySelector('div[style*="position: absolute"]');
+        if (tooltip) {
+          tooltip.remove();
+        }
+      }
+
+      // Remove series
+      if (this.chart && this.series) {
         this.chart.removeSeries(this.series);
       }
-      this.chart.remove();
+
+      // Remove chart
+      if (this.chart) {
+        this.chart.remove();
+      }
+
+      // Clear references
+      this.series = null as any;
       this.chart = null;
+
+      console.log('ChartManager: Cleanup completed successfully');
+    } catch (error) {
+      console.error('ChartManager: Error during cleanup:', error);
+      // Force cleanup even if errors occur
+      this.chart = null;
+      this.series = null as any;
+      document.onmousemove = null;
     }
+  }
+
+  /**
+   * Destroys the chart instance and removes all references
+   */
+  destroy() {
+    this.clear();
+  }
+
+  /**
+   * Checks if chart is properly initialized
+   */
+  isInitialized(): boolean {
+    return this.chart !== null;
+  }
+
+  /**
+   * Gets chart container element
+   */
+  getContainer(): HTMLElement | null {
+    return document.getElementById(this.containerId);
   }
 
   print(ph: PriceHistory) {
     try {
+      // Validate input data
+      if (!ph || !ph.prevPrice || !Array.isArray(ph.prevPrice)) {
+        throw new Error('Invalid price history data');
+      }
+
+      if (ph.prevPrice.length === 0) {
+        throw new Error('No price data to display');
+      }
+
+      // Ensure chart is initialized
+      if (!this.chart) {
+        this.init();
+      }
+
       this.addData(ph.prevPrice);
       this.addLowestPrice(ph.lowestPrice);
       this.addAveragePrice(ph.prevPrice);
       this.trackingtooltip();
       this.finalization();
+
+      console.log('ChartManager: Chart rendered successfully');
     } catch (error) {
-      console.error('ChartManager print error:', error);
+      console.error('ChartManager print error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: ph ? { hasPrevPrice: !!ph.prevPrice, dataLength: ph.prevPrice?.length } : 'No data',
+        timestamp: new Date().toISOString()
+      });
+
+      // Try to cleanup on error
+      this.clear();
     }
   }
 }
