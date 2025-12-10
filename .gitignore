@@ -2,7 +2,6 @@
 
 .wxt/
 .env
-api.ts
 
 # Logs
 logs
