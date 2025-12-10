@@ -80,7 +80,7 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
 
     // Use more robust selectors with fallbacks
     const nameEl = document.querySelector(namePath);
-    const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProdukPrice']");
+    const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProdukPrice"]');
     const magnifierEl = document.querySelector<HTMLElement>(magnifierPath) ||
                         document.querySelector<HTMLElement>('.magnifier') ||
                         document.querySelector<HTMLElement>('[data-testid="PDPImageMagnifier"]');
