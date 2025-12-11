@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.326",
+    "terser": "^5.44.1",
     "typescript": "^5.8.3",
     "wxt": "^0.20.7"
   }

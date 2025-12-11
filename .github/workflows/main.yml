@@ -48,6 +48,47 @@ jobs:
           echo "$log" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install terser for minification
+        run: pnpm add --save-dev terser
+
+      - name: Build extension for Chrome
+        run: pnpm run build
+
+      - name: Build extension for Firefox
+        run: pnpm run build:firefox
+
+      - name: Create Chrome zip
+        run: pnpm run zip
+
+      - name: Create Firefox zip
+        run: pnpm run zip:firefox
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -55,5 +96,8 @@ jobs:
           name: Release ${{ steps.extract_tag.outputs.tag }}
           body: ${{ steps.changelog.outputs.log }}
           generate_release_notes: true
+          files: |
+            .output/pricehistoryid-*.zip
+            !.output/*-sources.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
