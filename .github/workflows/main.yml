@@ -1,4 +1,4 @@
-name: Auto Release on "release:*" commit
+name: Release
 
 on:
   push:
