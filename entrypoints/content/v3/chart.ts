@@ -113,7 +113,27 @@ export class ChartManager {
 
   addData(data: PriceData[]) {
     if (!this.chart) return;
-    this.series = this.chart.addSeries(LineSeries, this.lineSeriesOptions);
+
+    const isFlatLine = data.length > 0 && data.every(d => d.value === data[0].value);
+    const seriesOptions: any = { ...this.lineSeriesOptions };
+
+    if (isFlatLine) {
+      const flatValue = data[0].value;
+      const padding = flatValue * 0.1; // 10% margin for better visibility
+      seriesOptions.autoscaleInfoProvider = () => ({
+        priceRange: {
+          minValue: flatValue - padding,
+          maxValue: flatValue + padding,
+        }
+      });
+      seriesOptions.priceFormat = {
+        type: 'price',
+        precision: 0,
+        minMove: 1,
+      };
+    }
+
+    this.series = this.chart.addSeries(LineSeries, seriesOptions);
     this.series.setData([...data].reverse());
   }
 
