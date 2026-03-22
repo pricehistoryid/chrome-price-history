@@ -1,5 +1,5 @@
 import interact from 'interactjs';
-import { elFactory } from './utils';
+import { createElement } from './utils/dom';
 
 export class FloatingButton {
   private element: HTMLElement;
@@ -14,7 +14,7 @@ export class FloatingButton {
   }
 
   private createElement(): HTMLElement {
-    return elFactory('button', {
+    return createElement('button', {
       class: 'ph-floating-btn',
       id: 'ph-floating-btn',
     });
