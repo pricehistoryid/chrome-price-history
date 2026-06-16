@@ -31,12 +31,11 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
 
     // Use FallbackRegistry for critical elements
     // Try multiple selectors for name
-    const name = await fallback.execute(namePath) ||
-                 await fallback.execute('[data-testid="lblPDPDetailProdukName"]') ||
+    const name = await fallback.execute('[data-testid="lblPDPDetailProductName"]') ||
                  await fallback.execute('h1') || '';
 
     // Use more robust selectors with fallbacks for others (migrating gradually)
-    const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProdukPrice"]');
+    const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProductPrice"]');
     const magnifierEl = document.querySelector<HTMLElement>(magnifierPath) ||
                         document.querySelector<HTMLElement>('.magnifier') ||
                         document.querySelector<HTMLElement>('[data-testid="PDPImageMagnifier"]');
@@ -73,6 +72,7 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
     };
 
     // console.log('Successfully scraped product:', { name, price: price, rating, sold });
+
     return result;
 
   } catch (error) {

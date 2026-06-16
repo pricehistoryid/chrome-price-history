@@ -8,10 +8,12 @@ export default defineConfig({
     permissions: ['tabs', 'storage', 'scripting', 'activeTab'],
     host_permissions: [
       '*://*.tokopedia.com/*',
-      'https://pricehistory.id/*'
+      'https://pricehistory.id/*',
+      'http://localhost:3000/*',
+      'http://localhost:3001/*'
     ],
     content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self'; connect-src 'self' https://pricehistory.id ws://localhost:3000 http://localhost:3000"
+      extension_pages: "script-src 'self'; object-src 'self'; connect-src 'self' https://pricehistory.id ws://localhost:3000 http://localhost:3000 http://localhost:3001"
     },
     icons: {
       '16': 'icon/16.png',
