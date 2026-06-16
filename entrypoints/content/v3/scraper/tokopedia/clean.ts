@@ -1,7 +1,7 @@
 import { ProductData } from '../result';
 
-export function cleanPrice(value: string): string {
-  return value
+export function cleanPrice(price: string): string {
+  return price
     .replaceAll('.', '')
     .replace(/[^0-9.-]+/g, '');
 }
@@ -146,7 +146,7 @@ export function extractProductFromCard(
   return {
     url: url.substring(0, 1000),
     name: name.substring(0, 500),
-    value: price,
+    price: price,
     imageUrl: imageUrl.substring(0, 500),
     rating: rating ? rating.substring(0, 10) : null,
     sold: sold.substring(0, 100)

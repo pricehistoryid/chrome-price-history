@@ -146,7 +146,7 @@ export function validateProductData(product: ProductData): ProductData {
     const validatedProduct: ProductData = {
       url: validateAndSanitizeUrl(product.url),
       name: sanitizeProductName(product.name),
-      value: validateAndParsePrice(product.value).toString(),
+      price: validateAndParsePrice(product.price).toString(),
       imageUrl: validateAndSanitizeImageUrl(product.imageUrl),
       rating: validateAndParseRating(product.rating),
       sold: validateAndParseSold(product.sold)

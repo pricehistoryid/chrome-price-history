@@ -43,9 +43,9 @@ describe('ChartManager Scaling', () => {
   it('should apply autoscaleInfoProvider when only one price point is available', () => {
     const chartManager = new ChartManager(containerId);
     const mockData = [
-      { time: 1642425322 as any, value: 6000 }
+      { time: 1642425322 as any, price: 6000 }
     ];
-    const mockLowestPrice = { time: 1642425322 as any, value: 6000 };
+    const mockLowestPrice = { time: 1642425322 as any, price: 6000 };
 
     chartManager.print({
       prevPrice: mockData,
@@ -63,11 +63,11 @@ describe('ChartManager Scaling', () => {
   it('should apply autoscaleInfoProvider when all data points have the same value', () => {
     const chartManager = new ChartManager(containerId);
     const mockData = [
-      { time: 1642425322 as any, value: 6000 },
-      { time: 1642511722 as any, value: 6000 },
-      { time: 1642684522 as any, value: 6000 }
+      { time: 1642425322 as any, price: 6000 },
+      { time: 1642511722 as any, price: 6000 },
+      { time: 1642684522 as any, price: 6000 }
     ];
-    const mockLowestPrice = { time: 1642425322 as any, value: 6000 };
+    const mockLowestPrice = { time: 1642425322 as any, price: 6000 };
 
     chartManager.print({
       prevPrice: mockData,
@@ -85,11 +85,11 @@ describe('ChartManager Scaling', () => {
   it('should NOT apply autoscaleInfoProvider when data points have different values', () => {
     const chartManager = new ChartManager(containerId);
     const mockData = [
-      { time: 1642425322 as any, value: 6000 },
-      { time: 1642511722 as any, value: 7000 },
-      { time: 1642684522 as any, value: 6500 }
+      { time: 1642425322 as any, price: 6000 },
+      { time: 1642511722 as any, price: 7000 },
+      { time: 1642684522 as any, price: 6500 }
     ];
-    const mockLowestPrice = { time: 1642425322 as any, value: 6000 };
+    const mockLowestPrice = { time: 1642425322 as any, price: 6000 };
 
     chartManager.print({
       prevPrice: mockData,

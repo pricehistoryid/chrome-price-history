@@ -1,12 +1,12 @@
 interface ProductData {
   url: string;
   name: string;
-  value: number | string;
+  price: number | string;
 }
 
 interface PriceData {
   time: string;
-  value: number;
+  price: number;
 }
 
 interface StoredData {
@@ -27,6 +27,19 @@ export class PriceHistory {
     this.tzOffset = new Date().getTimezoneOffset() * 60000;
   }
 
+  /**
+   * Migrates old PriceData objects from using 'value' to 'price'
+   */
+  private migratePriceData(data: any): PriceData {
+    if (data && data.value !== undefined && data.price === undefined) {
+      return {
+        time: data.time,
+        price: Number(data.value)
+      };
+    }
+    return data as PriceData;
+  }
+
   save(productData: ProductData, chart: { print: (data: any) => void }): void {
     const url = productData.url;
     const date = new Date(Date.now() - this.tzOffset)
@@ -35,32 +48,40 @@ export class PriceHistory {
 
     const newData: PriceData = {
       time: date,
-      value: Number(productData.value),
+      price: Number(productData.price),
     };
 
     chrome.storage.local.get(['price_history']).then((result: any) => {
-      const ph: StoredData = result.price_history || {};
+      const ph: any = result.price_history || {};
 
-      this.ph = ph[url] || { prevPrice: [], lowestPrice: newData };
-
-      // Update lowest price if needed
-      if (newData.value < this.ph.lowestPrice.value) {
-        this.ph.lowestPrice = newData;
+      let currentProduct = ph[url];
+      
+      if (currentProduct) {
+        // Migrate existing data if needed
+        currentProduct.prevPrice = (currentProduct.prevPrice || []).map((p: any) => this.migratePriceData(p));
+        currentProduct.lowestPrice = this.migratePriceData(currentProduct.lowestPrice);
       }
 
-      const latestPrice = this.ph.prevPrice[0] || { value: 0, time: '' };
+      this.ph = currentProduct || { prevPrice: [], lowestPrice: newData };
+
+      // Update lowest price if needed
+      if (newData.price < this.ph!.lowestPrice.price) {
+        this.ph!.lowestPrice = newData;
+      }
+
+      const latestPrice = this.ph!.prevPrice[0] || { price: 0, time: '' };
 
       // Add new data if it's different from the latest
-      if (latestPrice.value !== newData.value || latestPrice.time !== newData.time) {
-        if (latestPrice.time === newData.time && latestPrice.value > newData.value) {
-          this.ph.prevPrice[0].value = newData.value;
+      if (latestPrice.price !== newData.price || latestPrice.time !== newData.time) {
+        if (latestPrice.time === newData.time && latestPrice.price > newData.price) {
+          this.ph!.prevPrice[0].price = newData.price;
         } else if (latestPrice.time !== newData.time) {
-          this.ph.prevPrice.unshift(newData);
+          this.ph!.prevPrice.unshift(newData);
         }
 
         ph[url] = {
-          prevPrice: this.ph.prevPrice,
-          lowestPrice: this.ph.lowestPrice,
+          prevPrice: this.ph!.prevPrice,
+          lowestPrice: this.ph!.lowestPrice,
         };
 
         chrome.storage.local.set({ price_history: ph });

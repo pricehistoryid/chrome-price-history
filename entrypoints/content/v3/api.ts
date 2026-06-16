@@ -14,7 +14,7 @@ export async function updateProductPrice(productData: ProductData): Promise<void
       url: validatedProduct.url,
       name: validatedProduct.name,
       image_url: validatedProduct.imageUrl || '',
-      price: parseInt(validatedProduct.value.toString()),
+      price: parseInt(validatedProduct.price.toString()),
       rating: validatedProduct.rating || 0,
       sold: validatedProduct.sold || 0
     };

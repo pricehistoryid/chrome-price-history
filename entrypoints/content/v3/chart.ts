@@ -11,7 +11,7 @@ import {
 
 type PriceData = {
   time: UTCTimestamp;
-  value: number;
+  price: number;
 };
 
 type PriceHistory = {
@@ -75,16 +75,6 @@ export class ChartManager {
     price: 0, // placeholder
   };
 
-//   private trendLineSeriesOptions = {
-//     title: 'trend',
-//     lastValueVisible: false,
-//     priceLineVisible: false,
-//     color: '#008837',
-//     crosshairMarkerVisible: false,
-//     lineStyle: LineStyle.LargeDashed,
-//     lineWidth: 1 as LineWidth,
-//   };
-
   private endSeriesOptions = {
     autoScale: false,
     scaleMargins: {
@@ -127,11 +117,11 @@ export class ChartManager {
   addData(data: PriceData[]) {
     if (!this.chart) return;
 
-    const isFlatLine = data.length > 0 && data.every(d => d.value === data[0].value);
+    const isFlatLine = data.length > 0 && data.every(d => d.price === data[0].price);
     const seriesOptions: any = { ...this.lineSeriesOptions };
 
     if (isFlatLine) {
-      const flatValue = data[0].value;
+      const flatValue = data[0].price;
       const padding = flatValue * 0.1; // 10% margin for better visibility
       seriesOptions.autoscaleInfoProvider = () => ({
         priceRange: {
@@ -147,17 +137,24 @@ export class ChartManager {
     }
 
     this.series = this.chart.addSeries(LineSeries, seriesOptions);
-    this.series.setData([...data].reverse());
+    
+    // Map to library expected format (must use 'value' key)
+    const libraryData = data.map(d => ({
+      time: d.time,
+      value: d.price
+    }));
+    
+    this.series.setData([...libraryData].reverse());
   }
 
   addLowestPrice(data: PriceData) {
     if (!this.series) return;
-    this.series.createPriceLine({ ...this.lowestPriceLine, price: data.value });
+    this.series.createPriceLine({ ...this.lowestPriceLine, price: data.price });
   }
 
   addAveragePrice(data: PriceData[]) {
     if (!this.series || data.length === 0) return;
-    const avg = data.reduce((sum, d) => sum + d.value, 0) / data.length;
+    const avg = data.reduce((sum, d) => sum + d.price, 0) / data.length;
     this.series.createPriceLine({ ...this.averagePriceLine, price: avg });
   }
 

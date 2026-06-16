@@ -30,7 +30,7 @@ async function processProductElement(product: Element, index: number): Promise<P
       return {
         ...result,
         name: result.name || `Product ${index}`,
-        value: result.value || '0',
+        price: result.price || '0',
       };
     }
 
@@ -41,7 +41,7 @@ async function processProductElement(product: Element, index: number): Promise<P
     return {
       url: '',
       name: `Product ${index} (Error)`,
-      value: '0',
+      price: '0',
       imageUrl: '',
       rating: null,
       sold: ''

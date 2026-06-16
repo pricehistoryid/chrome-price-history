@@ -65,7 +65,7 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
     const result = {
       url,
       name: name.substring(0, 500), // Limit name length
-      value: price,
+      price: price,
       imageUrl: imageUrl.substring(0, 500), // Limit URL length
       rating: rating ? rating.substring(0, 10) : null, // Limit rating length
       sold: sold ? sold.substring(0, 50) : "" // Limit sold text length
