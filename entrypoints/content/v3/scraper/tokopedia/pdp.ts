@@ -1,6 +1,7 @@
 import { waitForElement } from '../../utils';
 import { ProductData } from '../result'
 import { cleanImageUrl, cleanPrice, cleanSold } from './clean';
+import { FallbackRegistry } from '../fallback';
 
 const namePath = "#pdp_comp-product_content"
 const pricePath = ".price"
@@ -41,36 +42,9 @@ function safeGetChildNodeText(parent: Element | null, childIndex: number): strin
   }
 }
 
-/**
- * Safely gets nested element text content
- */
-function safeGetNestedText(element: Element | null, path: string[]): string {
-  try {
-    if (!element) return '';
-    let current = element;
-
-    for (const selector of path) {
-      if (selector === 'firstElementChild') {
-        current = current.firstElementChild;
-      } else if (selector === 'textContent') {
-        return current?.textContent?.trim() ?? '';
-      } else {
-        const next = current?.querySelector(selector);
-        if (!next) return '';
-        current = next;
-      }
-
-      if (!current) return '';
-    }
-
-    return current?.textContent?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting nested text:', error);
-    return '';
-  }
-}
-
 export async function scrapePDP(url: string): Promise<ProductData | null> {
+  const fallback = new FallbackRegistry();
+
   try {
     // Wait for elements with timeout
     await Promise.race([
@@ -78,8 +52,13 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
       new Promise(resolve => setTimeout(resolve, 5000))
     ]);
 
-    // Use more robust selectors with fallbacks
-    const nameEl = document.querySelector(namePath);
+    // Use FallbackRegistry for critical elements
+    // Try multiple selectors for name
+    const name = await fallback.execute(namePath) ||
+                 await fallback.execute('[data-testid="lblPDPDetailProdukName"]') ||
+                 await fallback.execute('h1') || '';
+
+    // Use more robust selectors with fallbacks for others (migrating gradually)
     const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProdukPrice"]');
     const magnifierEl = document.querySelector<HTMLElement>(magnifierPath) ||
                         document.querySelector<HTMLElement>('.magnifier') ||
@@ -88,11 +67,6 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
                     document.querySelector('[data-testid="lblPDPDetailProdukRating"]');
     const soldEl = document.querySelector(soldPath) ||
                   document.querySelector('[data-testid="lblPDPDetailProdukSold"]');
-
-    // Extract data with safety checks
-    const name = safeGetNestedText(nameEl, ['firstElementChild', 'firstElementChild']) ||
-                safeGetTextContent(nameEl, 'h1') ||
-                safeGetTextContent(document.querySelector('[data-testid="lblPDPDetailProdukName"]'));
 
     const priceText = safeGetTextContent(priceEl);
     const price = priceText ? cleanPrice(priceText) : "0";
