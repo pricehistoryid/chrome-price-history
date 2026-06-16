@@ -6,8 +6,25 @@
 
 **E-commerce Price Tracker Extension**
 
-![License](https://img.shields.io/badge/license-MIT-green)
-[![Release](https://github.com/pricehistoryid/chrome-price-history/workflows/Release/badge.svg)](https://github.com/pricehistoryid/chrome-price-history/releases)
+  <a href="https://github.com/pricehistoryid/chrome-price-history/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/pricehistoryid/chrome-price-history" alt="License" />
+  </a>
+  <a href="https://github.com/pricehistoryid/chrome-price-history/releases/latest">
+    <img src="https://img.shields.io/github/v/release/pricehistoryid/chrome-price-history" alt="GitHub release" />
+  </a>
+  <a href="https://github.com/pricehistoryid/chrome-price-history/stargazers">
+    <img src="https://img.shields.io/github/stars/pricehistoryid/chrome-price-history?style=flat" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/sponsors/wikankun">
+    <img src="https://img.shields.io/github/sponsors/wikankun" alt="GitHub sponsors" />
+  </a>
+  <a href="https://github.com/pricehistoryid/chrome-price-history/releases">
+    <img src="https://img.shields.io/github/downloads/pricehistoryid/chrome-price-history/total" alt="GitHub downloads" />
+  </a>
+  <a href="https://github.com/pricehistoryid/chrome-price-history/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/pricehistoryid/chrome-price-history" alt="GitHub contributors" />
+  </a>
+
 
 </div>
 
