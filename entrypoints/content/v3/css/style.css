@@ -16,6 +16,30 @@
   box-shadow: 2px 2px 3px #999;
 }
 
+.ph-floating-btn {
+  position: fixed !important;
+  z-index: 2147483647; /* High z-index */
+  width: 60px;
+  height: 60px;
+  right: -5px; /* Slight overlap with edge */
+  top: 0px;
+  background-size: 80%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #fff;
+  background-image: url('https://raw.githubusercontent.com/pricehistoryid/chrome-price-history/master/assets/price-history-128.png');
+  border-radius: 30px 0 0 30px; /* Semi-circle */
+  border: 1px solid #ccc;
+  border-right: none;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  cursor: grab;
+  touch-action: none; /* Required for interact.js */
+}
+
+.ph-floating-btn:active {
+  cursor: grabbing;
+}
+
 .modal {
   display: none;
   position: fixed;
@@ -50,7 +74,7 @@
 .modal-body {
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;  
+  flex-wrap: nowrap;
   justify-content: space-between;
 }
 

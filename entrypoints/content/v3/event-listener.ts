@@ -2,7 +2,8 @@ import { ChartManager } from './chart';
 import { scrapePDP } from './scraper/tokopedia/pdp';
 import { PriceHistory } from './price-history';
 import { updateProductPrice } from './api';
-import { modalBtn, modal } from './inject'
+import { floatingButton, modal } from './inject';
+import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
 import { ProductData } from './scraper/result';
 
@@ -18,17 +19,23 @@ type tokopediaPageType = 'pdp' | 'wishlist' | 'merchant' | 'search';
 
 interface tokopediaResult {
   pageType: tokopediaPageType | null,
-  result: ProductData[] | null,
+  result: ProductData[] | null;
 }
 
 // Chart instance created outside
 const chart = new ChartManager('chart-container');
 window.priceHistoryParam = { chart }; // Make accessible globally if needed
 
-function modalEventListener(modal: HTMLDivElement, modalBtn: HTMLButtonElement) {
+function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: PriceHistory) {
   // Show modal
-  modalBtn?.addEventListener('click', () => {
-    if (modal) modal.style.display = 'block';
+  btn.onClick(() => {
+    if (modal) {
+      modal.style.display = 'block';
+      if (!window.priceHistoryParam.chart.isInitialized()) {
+        resetChart(window.priceHistoryParam.chart);
+        ph.render(window.priceHistoryParam.chart);
+      }
+    }
   });
 
   // Close modal on outside click and cleanup
@@ -77,7 +84,7 @@ function modalEventListener(modal: HTMLDivElement, modalBtn: HTMLButtonElement) 
 
   observer.observe(document.body, {
     childList: true,
-    subtree: true
+    subtree: true,
   });
 }
 
@@ -90,7 +97,7 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
     const result = await scrapePDP(url);
     return {
       pageType: 'pdp',
-      result: result ? [result] : null
+      result: result ? [result] : null,
     };
   }
 
@@ -99,31 +106,23 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
     const result = await scrapeWishlist();
     return {
       pageType: 'wishlist',
-      result: result
+      result: result,
     };
   }
-
-  // // Search page
-  // if (parsedUrl.pathname === '/search' || parsedUrl.searchParams.has('q')) {
-  // }
-
-  // // Store product page: /{store}/product
-  // if (/^\/[^/]+\/product$/.test(path)) {
-  // }
 
   return { pageType: null, result: null };
 }
 
-function setupModal() {
-  if (!document.body.contains(modalBtn)) {
-    document.body.appendChild(modalBtn);
+function setupModal(ph: PriceHistory) {
+  if (!document.body.contains(floatingButton.getElement())) {
+    floatingButton.mount();
     document.body.appendChild(modal);
-    modalEventListener(modal, modalBtn);
+    modalEventListener(modal, floatingButton, ph);
   }
 }
 
 function teardownModal() {
-  modalBtn.remove();
+  floatingButton.getElement().remove();
   modal.remove();
 }
 
@@ -148,7 +147,7 @@ async function processScraping(
       case 'pdp': {
         if (!result.result) return;
 
-        setupModal();
+        setupModal(ph);
         resetChart(chart);
         ph.save(result.result[0], chart);
 
@@ -159,7 +158,7 @@ async function processScraping(
       case 'wishlist': {
         teardownModal();
         if (!result.result) return;
-        result.result.forEach(product => updateProductPrice(product));
+        result.result.forEach((product) => updateProductPrice(product));
         break;
       }
 

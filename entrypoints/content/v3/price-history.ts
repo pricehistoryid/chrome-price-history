@@ -66,7 +66,14 @@ export class PriceHistory {
         chrome.storage.local.set({ price_history: ph });
       }
 
+      this.ph = ph[url];
       chart.print(this.ph);
     });
+  }
+
+  render(chart: { print: (data: any) => void }): void {
+    if (this.ph) {
+      chart.print(this.ph);
+    }
   }
 }
