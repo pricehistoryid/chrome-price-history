@@ -1,4 +1,37 @@
+import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
+
+/**
+ * Tokopedia CSS/XPath Selectors Configuration
+ */
+export const TOKOPEDIA_SELECTORS = {
+  PDP: {
+    container: "#pdp_comp-product_content",
+    name: "[data-testid='lblPDPDetailProductName']",
+    price: "[data-testid='lblPDPDetailProductPrice']",
+    magnifier: "[data-testid='PDPImageMagnifier']",
+    rating: "[data-testid='lblPDPDetailProdukRating']",
+    sold: "[data-testid='lblPDPDetailProdukSold']"
+  },
+  SEARCH: {
+    card: "div.css-5wh65g",
+    url: "a",
+    name: "span.\\+tnoqZhn89\\+NHUA43BpiJg\\=\\=",
+    price: "div.urMOIDHH7I0Iy1Dv2oFaNw\\=\\=",
+    image: "img[alt='product-image']",
+    rating: "span._2NfJxPu4JC-55aCJ8bEsyw\\=\\=",
+    sold: "span.u6SfjDD2WiBlNW7zHmzRhQ\\=\\="
+  },
+  WISHLIST: {
+    card: ".product__card, [data-testid='master-product-card']",
+    url: "a.pcv3__info-content",
+    name: "[data-testid='linkProductName']",
+    price: "[data-testid='linkProductPrice']",
+    image: ".pcv3_img_container img",
+    rating: ".prd_rating-average-text, .prd_shop-rating-average-and-label .prd_rating-average-text",
+    sold: ".prd_label-integrity"
+  }
+};
 
 export function cleanPrice(price: string): string {
   return price
@@ -151,4 +184,73 @@ export function extractProductFromCard(
     rating: rating ? rating.substring(0, 10) : null,
     sold: sold.substring(0, 100)
   };
+}
+
+/**
+ * Shared utility for scraping lists of products (Search, Wishlist)
+ * Handles batching, delays, and error recovery.
+ */
+export async function scrapeProductList(
+  cardSelector: string,
+  processor: (el: Element, index: number) => Promise<ProductData | null>
+): Promise<ProductData[]> {
+  try {
+    // Wait for at least one product card to appear
+    const firstCard = await Promise.race([
+      waitForElement<HTMLDivElement>(cardSelector),
+      new Promise<HTMLDivElement | null>(resolve => {
+        setTimeout(() => resolve(null), 5000); // 5 second timeout
+      })
+    ]);
+
+    if (!firstCard) {
+      console.warn(`Product cards ("${cardSelector}") not found within timeout`);
+      return [];
+    }
+
+    // Wait a bit for dynamic content to load
+    await sleep(1000);
+
+    // Get all product elements
+    const productElements = Array.from(document.querySelectorAll(cardSelector));
+
+    if (productElements.length === 0) {
+      console.warn('No products found in the list');
+      return [];
+    }
+
+    // Process products in batches to avoid overwhelming the page
+    const batchSize = 5;
+    const results: ProductData[] = [];
+
+    for (let i = 0; i < productElements.length; i += batchSize) {
+      const batch = productElements.slice(i, i + batchSize);
+
+      const batchPromises = batch.map((product, batchIndex) =>
+        processor(product, i + batchIndex)
+      );
+
+      try {
+        const batchResults = await Promise.all(batchPromises);
+        // Filter out nulls from non-product elements
+        for (const res of batchResults) {
+          if (res) results.push(res);
+        }
+
+        // Small delay between batches to avoid rate limiting or UI freezing
+        if (i + batchSize < productElements.length) {
+          await sleep(200);
+        }
+      } catch (error) {
+        console.error(`Error processing batch ${Math.floor(i / batchSize)}:`, error);
+        // Continue with next batch even if one fails
+      }
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error('Error in scrapeProductList:', error);
+    return [];
+  }
 }

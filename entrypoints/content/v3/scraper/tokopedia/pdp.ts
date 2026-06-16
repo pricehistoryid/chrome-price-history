@@ -3,46 +3,33 @@ import { ProductData } from '../result'
 import {
   cleanImageUrl,
   cleanPrice,
-  cleanSold,
   safeGetTextContent,
   safeGetChildNodeText,
-  safeGetHref,
-  safeGetSrc,
-  safeGetAttribute,
-  safeGetInnerHtml
+  TOKOPEDIA_SELECTORS
 } from './clean';
 import { FallbackRegistry } from '../fallback';
 
-const namePath = "#pdp_comp-product_content"
-const pricePath = ".price"
-const magnifierPath = "#pdp_comp-product_media > div > div > button > div > div.magnifier"
-const ratingPath = "#pdp_comp-product_content > div > div:nth-child(2) > div > p:nth-child(3) > span:nth-child(1) > span.main"
-const soldPath = "#pdp_comp-product_content > div > div:nth-child(2) > div > div > div > p"
-
 export async function scrapePDP(url: string): Promise<ProductData | null> {
   const fallback = new FallbackRegistry();
+  const selectors = TOKOPEDIA_SELECTORS.PDP;
 
   try {
-    // Wait for elements with timeout
+    // Wait for container element with timeout
     await Promise.race([
-      waitForElement<HTMLDivElement>(namePath),
+      waitForElement<HTMLDivElement>(selectors.container),
       new Promise(resolve => setTimeout(resolve, 5000))
     ]);
 
-    // Use FallbackRegistry for critical elements
-    // Try multiple selectors for name
-    const name = await fallback.execute('[data-testid="lblPDPDetailProductName"]') ||
+    // Try multiple selectors for name via fallback registry
+    const name = await fallback.execute(selectors.name) ||
                  await fallback.execute('h1') || '';
 
-    // Use more robust selectors with fallbacks for others (migrating gradually)
-    const priceEl = document.querySelector(pricePath) || document.querySelector('[data-testid="lblPDPDetailProductPrice"]');
-    const magnifierEl = document.querySelector<HTMLElement>(magnifierPath) ||
-                        document.querySelector<HTMLElement>('.magnifier') ||
-                        document.querySelector<HTMLElement>('[data-testid="PDPImageMagnifier"]');
-    const ratingEl = document.querySelector(ratingPath) ||
-                    document.querySelector('[data-testid="lblPDPDetailProdukRating"]');
-    const soldEl = document.querySelector(soldPath) ||
-                  document.querySelector('[data-testid="lblPDPDetailProdukSold"]');
+    // Use robust selectors with fallbacks
+    const priceEl = document.querySelector(selectors.price) || document.querySelector('.price');
+    const magnifierEl = document.querySelector<HTMLElement>(selectors.magnifier) ||
+                        document.querySelector<HTMLElement>('.magnifier');
+    const ratingEl = document.querySelector(selectors.rating);
+    const soldEl = document.querySelector(selectors.sold);
 
     const priceText = safeGetTextContent(priceEl);
     const price = priceText ? cleanPrice(priceText) : "0";
@@ -64,14 +51,12 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
 
     const result = {
       url,
-      name: name.substring(0, 500), // Limit name length
+      name: name.substring(0, 500),
       price: price,
-      imageUrl: imageUrl.substring(0, 500), // Limit URL length
-      rating: rating ? rating.substring(0, 10) : null, // Limit rating length
-      sold: sold ? sold.substring(0, 50) : "" // Limit sold text length
+      imageUrl: imageUrl.substring(0, 500),
+      rating: rating ? rating.substring(0, 10) : null,
+      sold: sold ? sold.substring(0, 50) : ""
     };
-
-    // console.log('Successfully scraped product:', { name, price: price, rating, sold });
 
     return result;
 

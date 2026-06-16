@@ -27,13 +27,35 @@ export class XPathStrategy implements ExtractionStrategy {
  */
 export class HeuristicStrategy implements ExtractionStrategy {
     name = 'heuristic';
-    execute(selector: string, context: Element = document.body): string | null {
-        // Simple heuristic: look for similar elements by class if direct selector fails
-        const baseElement = context.querySelector(selector);
-        if (baseElement) return baseElement.textContent?.trim() || null;
-
-        // Try searching for similar nodes by text pattern if possible
-        console.log(`Heuristic search for: ${selector}`);
+    execute(_selector: string, context: Element = document.body): string | null {
+        const isDev = import.meta.env.DEV;
+        
+        // keywords for price, sold, rating
+        const keywords = ['Rp', 'IDR', 'Terjual', 'Sold', '/5', 'stars'];
+        
+        for (const word of keywords) {
+            try {
+                // Case-insensitive text search using XPath contains
+                // We use '.' as context to search relative to context element
+                const xpath = `.//*[contains(text(), "${word}")]`;
+                const result = document.evaluate(xpath, context, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                const el = result.singleNodeValue as Element;
+                
+                if (el && el.textContent) {
+                    const text = el.textContent.trim();
+                    // Basic validation: ensure the text actually contains the word (XPath contains is sometimes broad)
+                    if (text.toLowerCase().includes(word.toLowerCase())) {
+                        if (isDev) {
+                            console.log(`[Fallback] Heuristic match found for "${word}":`, el);
+                        }
+                        return text;
+                    }
+                }
+            } catch (e) {
+                if (isDev) console.warn(`Heuristic search failed for "${word}":`, e);
+            }
+        }
+        
         return null;
     }
 }
@@ -62,11 +84,37 @@ export class FallbackRegistry {
     }
 
     async execute(selector: string, context: Element = document.body): Promise<string | null> {
-        for (const strategy of this.strategies) {
-            console.log(`Executing extraction strategy: ${strategy.name}`);
+        const isDev = import.meta.env.DEV;
+        const isXPath = selector.startsWith('/') || selector.startsWith('(') || selector.startsWith('./');
+        
+        const order = isXPath ? ['xpath', 'css'] : ['css', 'xpath'];
+        const logs: string[] = [];
+
+        for (const type of order) {
+            const strategy = this.strategies.find(s => s.name === type);
+            if (!strategy) continue;
+
             const result = strategy.execute(selector, context);
-            if (result) return result;
+            if (result) {
+                if (isDev) {
+                    console.log(`[Fallback] Success: ${type} strategy found data for "${selector}"`);
+                }
+                return result;
+            }
+            logs.push(type);
         }
-        return null;
+
+        if (isDev) {
+            console.warn(`[Fallback] Failed: ${logs.join(', ')} strategies for "${selector}". Trying heuristics...`);
+        }
+
+        const heuristic = this.strategies.find(s => s.name === 'heuristic');
+        const result = heuristic?.execute(selector, context) || null;
+
+        if (isDev && !result) {
+            console.error(`[Fallback] All extraction strategies failed for "${selector}"`);
+        }
+
+        return result;
     }
 }
