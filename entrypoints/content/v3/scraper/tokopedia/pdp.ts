@@ -34,7 +34,14 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
     const priceText = safeGetTextContent(priceEl);
     const price = priceText ? cleanPrice(priceText) : "0";
 
-    const imageUrl = magnifierEl ? cleanImageUrl(magnifierEl.style.backgroundImage) : "";
+    let imageUrl = "";
+    if (magnifierEl) {
+      if (magnifierEl instanceof HTMLImageElement) {
+        imageUrl = magnifierEl.src;
+      } else {
+        imageUrl = cleanImageUrl(magnifierEl.style.backgroundImage);
+      }
+    }
 
     const rating = safeGetTextContent(ratingEl);
     const sold = safeGetChildNodeText(soldEl, 2) || safeGetTextContent(soldEl);

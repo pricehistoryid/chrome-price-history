@@ -107,7 +107,7 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
   const path = parsedUrl.pathname;
 
   // PDP (product detail page)
-  if (/^\/[^/]+\/[^/]+-\d+/.test(path)) {
+  if (/^\/[^/]+\/[^/]+-[a-z0-9]+/i.test(path)) {
     const result = await scrapePDP(url);
     return {
       pageType: 'pdp',
@@ -126,7 +126,9 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
 
   // Search
   if (path === '/search') {
+    console.log('scrape search page')
     const result = await scrapeSearch(url);
+    console.log(result)
     return {
       pageType: 'search',
       result: result,

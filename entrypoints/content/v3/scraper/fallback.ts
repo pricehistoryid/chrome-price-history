@@ -16,7 +16,7 @@ export class XPathStrategy implements ExtractionStrategy {
             const result = document.evaluate(xpath, context, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
             return result.singleNodeValue?.textContent?.trim() || null;
         } catch (e) {
-            console.warn('XPath evaluation failed:', e);
+            // Silently fail as this might be a CSS selector passed as fallback
             return null;
         }
     }
@@ -27,11 +27,21 @@ export class XPathStrategy implements ExtractionStrategy {
  */
 export class HeuristicStrategy implements ExtractionStrategy {
     name = 'heuristic';
-    execute(_selector: string, context: Element = document.body): string | null {
+    execute(selector: string, context: Element = document.body): string | null {
         const isDev = import.meta.env.DEV;
         
-        // keywords for price, sold, rating
-        const keywords = ['Rp', 'IDR', 'Terjual', 'Sold', '/5', 'stars'];
+        let keywords: string[] = [];
+        const lowerSelector = selector.toLowerCase();
+        
+        if (lowerSelector.includes('price')) {
+            keywords = ['Rp', 'IDR'];
+        } else if (lowerSelector.includes('sold')) {
+            keywords = ['Terjual', 'Sold'];
+        } else if (lowerSelector.includes('rating')) {
+            keywords = ['/5', 'stars'];
+        } else {
+            return null; // Cannot determine context
+        }
         
         for (const word of keywords) {
             try {
@@ -87,7 +97,8 @@ export class FallbackRegistry {
         const isDev = import.meta.env.DEV;
         const isXPath = selector.startsWith('/') || selector.startsWith('(') || selector.startsWith('./');
         
-        const order = isXPath ? ['xpath', 'css'] : ['css', 'xpath'];
+        // Only try the detected strategy type to avoid syntax errors
+        const order = isXPath ? ['xpath'] : ['css'];
         const logs: string[] = [];
 
         for (const type of order) {

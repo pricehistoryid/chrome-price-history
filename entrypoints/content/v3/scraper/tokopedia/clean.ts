@@ -9,18 +9,18 @@ export const TOKOPEDIA_SELECTORS = {
     container: "#pdp_comp-product_content",
     name: "[data-testid='lblPDPDetailProductName']",
     price: "[data-testid='lblPDPDetailProductPrice']",
-    magnifier: "[data-testid='PDPImageMagnifier']",
-    rating: "[data-testid='lblPDPDetailProdukRating']",
-    sold: "[data-testid='lblPDPDetailProdukSold']"
+    magnifier: "[data-testid='PDPImageMagnifier'], img[alt^='Gambar']",
+    rating: "[data-testid*='Rating']",
+    sold: "[data-testid*='Sold']"
   },
   SEARCH: {
     card: "div.css-5wh65g",
     url: "a",
-    name: "span.\\+tnoqZhn89\\+NHUA43BpiJg\\=\\=",
-    price: "div.urMOIDHH7I0Iy1Dv2oFaNw\\=\\=",
-    image: "img[alt='product-image']",
-    rating: "span._2NfJxPu4JC-55aCJ8bEsyw\\=\\=",
-    sold: "span.u6SfjDD2WiBlNW7zHmzRhQ\\=\\="
+    name: "[data-testid='lblSRPProductProductName'], span.\\+tnoqZhn89\\+NHUA43BpiJg\\=\\=",
+    price: "[data-testid='lblSRPProductPrice'], div.urMOIDHH7I0Iy1Dv2oFaNw\\=\\=",
+    image: "img[alt='product-image'], .loWbMM9lKTafPiUjqt9UWA img",
+    rating: "[data-testid*='Rating']",
+    sold: "[data-testid*='Sold']"
   },
   WISHLIST: {
     card: ".product__card, [data-testid='master-product-card']",

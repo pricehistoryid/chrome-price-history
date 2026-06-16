@@ -1,52 +1,169 @@
+import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
-import { cleanSold, extractProductFromCard, scrapeProductList, TOKOPEDIA_SELECTORS } from './clean';
+import { cleanPrice, cleanSold, safeGetHref, TOKOPEDIA_SELECTORS } from './clean';
+import { updateProductPrice } from '../../api';
+import { FallbackRegistry } from '../fallback';
 
 /**
- * Safely processes a single search result element with error handling
+ * Cache for processed product URLs to avoid duplicate API calls during search session
  */
-async function processSearchElement(product: Element, index: number): Promise<ProductData | null> {
+const processedUrls = new Set<string>();
+
+let observer: IntersectionObserver | null = null;
+let mutationObserver: MutationObserver | null = null;
+
+/**
+ * Safely processes a single search result element using FallbackRegistry and heuristics
+ */
+async function processSearchElement(product: Element, _index: number): Promise<ProductData | null> {
+  const fallback = new FallbackRegistry();
   const selectors = TOKOPEDIA_SELECTORS.SEARCH;
+
   try {
-    const result = extractProductFromCard(product, {
-      urlPath: selectors.url,
-      namePath: selectors.name,
-      pricePath: selectors.price,
-      imagePath: selectors.image,
-      ratingPath: selectors.rating,
-      soldPath: selectors.sold
-    });
+    const name = await fallback.execute(selectors.name, product);
+    const priceText = await fallback.execute(selectors.price, product);
+    
+    // Fallback for image: use direct querySelector since it's more reliable for specific tags
+    let imageEl = product.querySelector(selectors.image) as HTMLImageElement;
+    let imageUrl = imageEl?.src || '';
 
-    // Robust fallback for rating: use img[alt="rating"] as anchor
-    if (!result.rating) {
-      const ratingEl = product.querySelector('img[alt="rating"]')?.parentElement?.nextElementSibling;
-      if (ratingEl) {
-        result.rating = ratingEl.textContent?.trim()?.substring(0, 10) || null;
+    // Wait for lazy loaded image to replace placeholder
+    if (imageUrl.includes('85cc883d.svg')) {
+      for (let i = 0; i < 20; i++) { // Wait up to 4 seconds
+        await sleep(200);
+        imageEl = product.querySelector(selectors.image) as HTMLImageElement;
+        if (imageEl?.src && !imageEl.src.includes('85cc883d.svg')) {
+          imageUrl = imageEl.src;
+          break;
+        }
       }
     }
-
-    // Robust fallback for sold: filter by text content "terjual"
-    if (!result.sold) {
-      const soldEl = Array.from(product.querySelectorAll('span')).find(el =>
-        el.textContent?.toLowerCase().includes('terjual')
-      );
-      if (soldEl) {
-        result.sold = cleanSold(soldEl.textContent?.trim() || '').substring(0, 100);
-      }
+    
+    if (!name || !priceText) {
+      return null;
     }
 
-    // Validate required fields - if missing, it's likely not a valid product card
-    if (!result.url || !result.name) {
+    const result: ProductData = {
+      url: safeGetHref(product, selectors.url),
+      name: name.substring(0, 500),
+      price: cleanPrice(priceText),
+      imageUrl: imageUrl,
+      rating: await fallback.execute(selectors.rating, product),
+      sold: await fallback.execute(selectors.sold, product)
+    };
+
+    // Validate required fields
+    if (!result.url || !result.name || result.price === '0') {
       return null;
     }
 
     return result;
   } catch (error) {
-    console.error(`Error processing search result product ${index}:`, error);
+    // console.warn('Error processing search element:', error);
     return null;
   }
 }
 
+/**
+ * Checks if an element is currently visible in the viewport
+ */
+function isElementInViewport(el: Element): boolean {
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+}
+
+/**
+ * Observes the search page for product cards and triggers scraping as they enter view,
+ * while returning initially visible items immediately.
+ */
 export async function scrapeSearch(_url: string): Promise<ProductData[] | null> {
   const selectors = TOKOPEDIA_SELECTORS.SEARCH;
-  return await scrapeProductList(selectors.card, processSearchElement);
+
+  // 1. Cleanup existing observers if re-initializing on URL change
+  if (observer) observer.disconnect();
+  if (mutationObserver) mutationObserver.disconnect();
+
+  // Wait for an actual product link to appear (not just a skeleton card)
+  const firstProductLink = await Promise.race([
+    waitForElement<HTMLAnchorElement>(`${selectors.card} ${selectors.url}`),
+    new Promise<HTMLAnchorElement | null>(resolve => {
+      setTimeout(() => resolve(null), 5000);
+    })
+  ]);
+
+  if (!firstProductLink) return [];
+  await sleep(1000); // Allow time for images/text to populate
+
+  // 2. Process initially visible cards to return immediately
+  const initialCards = Array.from(document.querySelectorAll(selectors.card));
+  const visibleCards = initialCards.filter(c => !c.classList.contains('IOLazyloading') && isElementInViewport(c));
+  
+  const initialResults: ProductData[] = [];
+  
+  for (const card of visibleCards) {
+    const product = await processSearchElement(card, 0);
+    if (product && !processedUrls.has(product.url)) {
+      processedUrls.add(product.url);
+      initialResults.push(product);
+    }
+  }
+
+  // 3. Setup IntersectionObserver for subsequent scrolling
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(async (entry) => {
+      if (entry.isIntersecting) {
+        const card = entry.target;
+
+        // Skip skeleton loaders
+        if (card.classList.contains('IOLazyloading')) return;
+
+        const product = await processSearchElement(card, 0);
+        
+        if (product && !processedUrls.has(product.url)) {
+          processedUrls.add(product.url);
+          // Async update for newly scrolled items
+          updateProductPrice(product);
+          
+          // Once successfully processed, stop observing this card
+          observer!.unobserve(card);
+        }
+      }
+    });
+  }, { 
+    threshold: 0.1,
+    rootMargin: '100px' // Start loading slightly before they enter view
+  });
+
+  // Function to observe currently visible cards
+  const observeCards = () => {
+    const cards = document.querySelectorAll(selectors.card);
+    cards.forEach(c => {
+      // Check if already processed to avoid re-observing
+      const link = c.querySelector(selectors.url) as HTMLAnchorElement;
+      if (link && !processedUrls.has(link.href) && observer) {
+        observer.observe(c);
+      }
+    });
+  };
+
+  // Start observing
+  observeCards();
+
+  // Watch for dynamic card additions (Tokopedia's lazy loading/infinite scroll)
+  mutationObserver = new MutationObserver(() => {
+    observeCards();
+  });
+
+  mutationObserver.observe(document.body, { 
+    childList: true, 
+    subtree: true 
+  });
+
+  // Return the initially visible products to satisfy the caller (e.g. event-listener logs)
+  return initialResults;
 }
