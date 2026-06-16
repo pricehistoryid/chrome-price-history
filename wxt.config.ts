@@ -11,7 +11,7 @@ export default defineConfig({
       'https://pricehistory.id/*'
     ],
     content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self'; connect-src 'self' https://pricehistory.id"
+      extension_pages: "script-src 'self'; object-src 'self'; connect-src 'self' https://pricehistory.id ws://localhost:3000 http://localhost:3000"
     },
     icons: {
       '16': 'icon/16.png',

@@ -5,6 +5,7 @@ import { updateProductPrice } from './api';
 import { floatingButton, modal } from './inject';
 import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
+import { scrapeSearch } from './scraper/tokopedia/search';
 import { ProductData } from './scraper/result';
 
 declare global {
@@ -86,6 +87,19 @@ function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: Pric
     childList: true,
     subtree: true,
   });
+
+  setupTabListeners(modal);
+}
+
+export function setupTabListeners(modal: HTMLElement) {
+  const closeBtn = modal.querySelector('.ph-modal-close');
+
+  closeBtn?.addEventListener('click', () => {
+    modal.style.display = 'none';
+    if (window.priceHistoryParam?.chart) {
+      window.priceHistoryParam.chart.clear();
+    }
+  });
 }
 
 async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
@@ -106,6 +120,15 @@ async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
     const result = await scrapeWishlist();
     return {
       pageType: 'wishlist',
+      result: result,
+    };
+  }
+
+  // Search
+  if (path === '/search') {
+    const result = await scrapeSearch(url);
+    return {
+      pageType: 'search',
       result: result,
     };
   }
@@ -155,7 +178,8 @@ async function processScraping(
         break;
       }
 
-      case 'wishlist': {
+      case 'wishlist':
+      case 'search': {
         teardownModal();
         if (!result.result) return;
         result.result.forEach((product) => updateProductPrice(product));

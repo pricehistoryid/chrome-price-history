@@ -5,4 +5,5 @@ export interface ProductData {
   value: string | number;
   rating?: string | number | null;
   sold?: string | number | null;
+  promos?: string[];
 }

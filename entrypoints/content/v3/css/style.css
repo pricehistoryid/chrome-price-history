@@ -2,20 +2,6 @@
   margin: 0.4rem;
 }
 
-.ph-ext {
-  position: fixed;
-  z-index: 1000;
-  width: 60px;
-  height: 60px;
-  bottom: 40px;
-  right: 40px;
-  background-size: contain;
-  background-image: url('https://raw.githubusercontent.com/pricehistoryid/chrome-price-history/master/assets/price-history-128.png');
-  border-radius: 50px;
-  border: none;
-  box-shadow: 2px 2px 3px #999;
-}
-
 .ph-floating-btn {
   position: fixed !important;
   z-index: 2147483647; /* High z-index */
@@ -31,9 +17,14 @@
   border-radius: 30px 0 0 30px; /* Semi-circle */
   border: 1px solid #ccc;
   border-right: none;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  box-shadow: -2px 0 10px rgba(0,0,0,0.15);
   cursor: grab;
   touch-action: none; /* Required for interact.js */
+  transition: transform 0.2s;
+}
+
+.ph-floating-btn:hover {
+  transform: translateX(-5px);
 }
 
 .ph-floating-btn:active {
@@ -43,51 +34,116 @@
 .modal {
   display: none;
   position: fixed;
-  z-index: 1000;
-  padding: 30vh 0px;
+  z-index: 2147483646;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
 }
 
 .modal-container {
-  background-color: #fefefe;
-  color: #000000;
-  margin: auto;
-  padding: 20px;
-  width: 640px;
-  min-width: 640px;
-  height: 340px;
-  min-height: 340px;
-  overflow: auto;
-  cursor: default;
-  box-sizing: border-box;
-}
-
-.modal-header {
-  padding: 12px 0px;
-}
-
-.modal-body {
+  background-color: #ffffff;
+  color: #1f2937;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 645px;
+  height: 390px;
+  border-radius: 10px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(229, 231, 235, 0.5);
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  justify-content: space-between;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: default;
 }
 
-.close {
-  color: #aaaaaa;
-  float: right;
-  font-size: 32px;
-  font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-  color: #000;
-  text-decoration: none;
+.ph-modal-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #6b7280;
   cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+  background-color: #f3f4f6;
+}
+
+.ph-modal-close:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.tab-container {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px 0 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background-color: #ffffff;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #9ca3af;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  border-radius: 10px 10px 0 0;
+}
+
+.tab-btn:hover {
+  color: #4b5563;
+  background-color: #f9fafb;
+}
+
+.tab-btn.active {
+  color: #2563eb; /* Distinctive blue */
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #2563eb;
+  border-radius: 3px 3px 0 0;
+}
+
+.modal-content {
+  flex: 1;
+  padding: 24px 24px 0px 24px;
+  overflow-y: auto;
+  background-color: #fff;
+}
+
+.tab-pane {
+  display: none;
+  height: 100%;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+#chart-container {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
 }

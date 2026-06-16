@@ -92,7 +92,7 @@ export async function updateProductPrice(productData: ProductData): Promise<void
     });
 
     const result = await response.text();
-    console.log('Price updated successfully:', result);
+    // console.log('Price updated successfully:', result);
 
   } catch (error) {
     // Provide detailed error information

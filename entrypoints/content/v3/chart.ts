@@ -30,6 +30,18 @@ export class ChartManager {
     currency: 'IDR',
   }).format;
 
+  private myDateFormatter = (time: any) => {
+    // Lightweight Charts time can be a number (UTCTimestamp) or a BusinessDay object
+    const timestamp = typeof time === 'number' ? time : (time as any).timestamp;
+    if (!timestamp) return time.toString();
+
+    return new Date(timestamp * 1000).toLocaleDateString(this.currentLocale, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   private chartOptions = {
     width: 600,
     height: 300,
@@ -92,6 +104,7 @@ export class ChartManager {
         labelVisible: false,
       },
       vertLine: {
+        visible: true,
         labelVisible: false,
       },
     },
@@ -154,35 +167,28 @@ export class ChartManager {
     const container = document.getElementById(this.containerId);
     if (!container) return;
 
-    let cursorX = 0;
-    let cursorY = 0;
-
     const tooltip = document.createElement('div');
-    tooltip.style.cssText = `
-      position: absolute;
-      display: none;
-      padding: 8px;
-      box-sizing: border-box;
-      font-size: 12px;
-      text-align: left;
-      z-index: 1001;
-      top: 12px;
-      left: 12px;
-      pointer-events: none;
-      border: 1px solid black;
-      border-radius: 2px;
-      background: white;
-      color: black;
-      font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    `;
+    tooltip.className = 'price-history-tooltip';
+    Object.assign(tooltip.style, {
+      position: 'absolute',
+      display: 'none',
+      padding: '8px',
+      boxSizing: 'border-box',
+      fontSize: '12px',
+      textAlign: 'left',
+      zIndex: '1001',
+      top: '12px',
+      left: '12px',
+      pointerEvents: 'none',
+      border: '1px solid black',
+      borderRadius: '2px',
+      background: 'white',
+      color: 'black',
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif",
+      webkitFontSmoothing: 'antialiased',
+      mozOsxFontSmoothing: 'grayscale',
+    });
     container.appendChild(tooltip);
-
-    document.onmousemove = (event: MouseEvent) => {
-      cursorX = event.clientX;
-      cursorY = event.clientY;
-    };
 
     this.chart.subscribeCrosshairMove((param: any) => {
       if (
@@ -198,7 +204,10 @@ export class ChartManager {
       }
 
       const data = param.seriesData.get(this.series);
-      if (!data) return;
+      if (!data) {
+        tooltip.style.display = 'none';
+        return;
+      }
 
       const price = 'value' in data ? data.value : (data as any).close;
       const priceCurrency = this.myPriceFormatter(price);
@@ -207,11 +216,16 @@ export class ChartManager {
       tooltip.style.width = `${105 + (10 * Math.max(priceLength - 3, 0))}px`;
       tooltip.innerHTML = `
         <div style="font-size: 16px; margin: 4px 0px;">${priceCurrency}</div>
-        <div>${param.time}</div>`;
+        <div>${this.myDateFormatter(param.time)}</div>`;
 
-      const tooltipMargin = 30;
-      tooltip.style.left = `${cursorX + tooltipMargin}px`;
-      tooltip.style.top = `${cursorY + tooltipMargin}px`;
+      const coordinate = this.series.priceToCoordinate(price);
+      if (coordinate === null) {
+        tooltip.style.display = 'none';
+        return;
+      }
+
+      tooltip.style.left = `${param.point.x}px`;
+      tooltip.style.top = `${coordinate}px`;
       tooltip.style.display = 'block';
     });
   }
@@ -230,13 +244,10 @@ export class ChartManager {
         this.chart.unsubscribeCrosshairMove();
       }
 
-      // Clean up global mouse move listener
-      document.onmousemove = null;
-
       // Remove tooltip if it exists
       const container = document.getElementById(this.containerId);
       if (container) {
-        const tooltip = container.querySelector('div[style*="position: absolute"]');
+        const tooltip = container.querySelector('.price-history-tooltip');
         if (tooltip) {
           tooltip.remove();
         }
@@ -256,7 +267,7 @@ export class ChartManager {
       this.series = null as any;
       this.chart = null;
 
-      console.log('ChartManager: Cleanup completed successfully');
+      // console.log('ChartManager: Cleanup completed successfully');
     } catch (error) {
       console.error('ChartManager: Error during cleanup:', error);
       // Force cleanup even if errors occur
@@ -309,7 +320,7 @@ export class ChartManager {
       this.trackingtooltip();
       this.finalization();
 
-      console.log('ChartManager: Chart rendered successfully');
+      // console.log('ChartManager: Chart rendered successfully');
     } catch (error) {
       console.error('ChartManager print error:', {
         error: error instanceof Error ? error.message : 'Unknown error',

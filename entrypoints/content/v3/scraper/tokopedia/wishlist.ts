@@ -1,99 +1,38 @@
 import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
-import { cleanImageUrl, cleanPrice, cleanSold } from './clean';
+import { extractProductFromCard } from './clean';
 
-const wishlistPath = 'div.content > div > div.content__grid > div > div:nth-child(1)'
-const urlPath = '.pcv3__container > div > a'
-const namePath = '.prd_link-product-name'
-const pricePath = '.prd_link-product-price'
-const imagePath = '.pcv3_img_container > img'
-const ratingPath = ''
+const productCardSelector = '.product__card, [data-testid="master-product-card"]'
+const urlPath = 'a.pcv3__info-content'
+const namePath = '[data-testid="linkProductName"]'
+const pricePath = '[data-testid="linkProductPrice"]'
+const imagePath = '.pcv3_img_container img'
+const ratingPath = '.prd_rating-average-text, .prd_shop-rating-average-and-label .prd_rating-average-text'
 const soldPath = '.prd_label-integrity'
-
-/**
- * Safely extracts text content with fallback
- */
-function safeGetTextContent(element: Element | null): string {
-  try {
-    return element?.textContent?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting text content:', error);
-    return '';
-  }
-}
-
-/**
- * Safely extracts href from anchor element
- */
-function safeGetHref(element: Element | null): string {
-  try {
-    return (element as HTMLAnchorElement)?.href ?? '';
-  } catch (error) {
-    console.warn('Error getting href:', error);
-    return '';
-  }
-}
-
-/**
- * Safely extracts src from image element
- */
-function safeGetSrc(element: Element | null): string {
-  try {
-    return (element as HTMLImageElement)?.src ?? '';
-  } catch (error) {
-    console.warn('Error getting src:', error);
-    return '';
-  }
-}
 
 /**
  * Safely processes a single product element with error handling
  */
 async function processProductElement(product: Element, index: number): Promise<ProductData> {
   try {
-    // Use batched queries for performance
-    const elements = {
-      urlEl: product.querySelector(urlPath),
-      nameEl: product.querySelector(namePath),
-      priceEl: product.querySelector(pricePath),
-      imageUrlEl: product.querySelector(imagePath),
-      soldEl: product.querySelector(soldPath)
-    };
-
-    // Extract data with safety checks
-    const url = safeGetHref(elements.urlEl);
-    const name = safeGetTextContent(elements.nameEl);
-    const priceText = safeGetTextContent(elements.priceEl);
-    const imageSrc = safeGetSrc(elements.imageUrlEl);
-    const soldText = safeGetTextContent(elements.soldEl);
-
-    // Clean and validate data
-    const price = cleanPrice(priceText);
-    const imageUrl = cleanImageUrl(imageSrc);
-    const sold = cleanSold(soldText);
+    const result = extractProductFromCard(product, {
+      urlPath,
+      namePath,
+      pricePath,
+      imagePath,
+      ratingPath,
+      soldPath
+    });
 
     // Validate required fields
-    if (!url || !name) {
-      console.warn(`Product ${index} missing required data`, { url, name });
+    if (!result.url || !result.name) {
+      console.warn(`Product ${index} missing required data`, { url: result.url, name: result.name });
       return {
-        url: url || '',
-        name: name || `Product ${index}`,
-        value: '0',
-        imageUrl: '',
-        rating: null,
-        sold: ''
+        ...result,
+        name: result.name || `Product ${index}`,
+        value: result.value || '0',
       };
     }
-
-    // Limit field lengths to prevent potential issues
-    const result: ProductData = {
-      url: url.substring(0, 1000), // Limit URL length
-      name: name.substring(0, 500), // Limit name length
-      value: price,
-      imageUrl: imageUrl.substring(0, 500), // Limit image URL length
-      rating: null,
-      sold: sold.substring(0, 100) // Limit sold text length
-    };
 
     return result;
   } catch (error) {
@@ -112,18 +51,18 @@ async function processProductElement(product: Element, index: number): Promise<P
 
 export async function scrapeWishlist(): Promise<ProductData[] | null> {
   try {
-    console.log('Starting wishlist scraping...');
+    // console.log('Starting wishlist scraping...');
 
-    // Wait for wishlist container with timeout
-    const container = await Promise.race([
-      waitForElement<HTMLDivElement>(wishlistPath),
+    // Wait for at least one product card to appear
+    const firstCard = await Promise.race([
+      waitForElement<HTMLDivElement>(productCardSelector),
       new Promise<HTMLDivElement | null>(resolve => {
         setTimeout(() => resolve(null), 5000); // 5 second timeout
       })
     ]);
 
-    if (!container) {
-      console.warn('Wishlist container not found within timeout');
+    if (!firstCard) {
+      console.warn('Product cards not found within timeout');
       return null;
     }
 
@@ -131,14 +70,14 @@ export async function scrapeWishlist(): Promise<ProductData[] | null> {
     await sleep(1000);
 
     // Get all product elements
-    const productElements = Array.from(container.children);
+    const productElements = Array.from(document.querySelectorAll(productCardSelector));
 
     if (productElements.length === 0) {
       console.warn('No products found in wishlist');
       return [];
     }
 
-    console.log(`Found ${productElements.length} products to scrape`);
+    // console.log(`Found ${productElements.length} products to scrape`);
 
     // Process products in batches to avoid overwhelming the page
     const batchSize = 5;
@@ -170,7 +109,7 @@ export async function scrapeWishlist(): Promise<ProductData[] | null> {
       product.url && product.name && product.name !== ''
     );
 
-    console.log(`Successfully scraped ${validResults.length} out of ${productElements.length} products`);
+    // console.log(`Successfully scraped ${validResults.length} out of ${productElements.length} products`);
 
     return validResults;
 

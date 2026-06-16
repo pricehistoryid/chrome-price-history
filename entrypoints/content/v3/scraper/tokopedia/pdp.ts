@@ -1,6 +1,16 @@
 import { waitForElement } from '../../utils';
 import { ProductData } from '../result'
-import { cleanImageUrl, cleanPrice, cleanSold } from './clean';
+import {
+  cleanImageUrl,
+  cleanPrice,
+  cleanSold,
+  safeGetTextContent,
+  safeGetChildNodeText,
+  safeGetHref,
+  safeGetSrc,
+  safeGetAttribute,
+  safeGetInnerHtml
+} from './clean';
 import { FallbackRegistry } from '../fallback';
 
 const namePath = "#pdp_comp-product_content"
@@ -8,39 +18,6 @@ const pricePath = ".price"
 const magnifierPath = "#pdp_comp-product_media > div > div > button > div > div.magnifier"
 const ratingPath = "#pdp_comp-product_content > div > div:nth-child(2) > div > p:nth-child(3) > span:nth-child(1) > span.main"
 const soldPath = "#pdp_comp-product_content > div > div:nth-child(2) > div > div > div > p"
-
-/**
- * Safely gets text content from an element
- */
-function safeGetTextContent(element: Element | null, selector?: string): string {
-  try {
-    if (!element) return '';
-    if (selector) {
-      const selected = element.querySelector(selector);
-      return selected?.textContent?.trim() ?? '';
-    }
-    return element.textContent?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting text content:', error);
-    return '';
-  }
-}
-
-/**
- * Safely gets text content from child nodes
- */
-function safeGetChildNodeText(parent: Element | null, childIndex: number): string {
-  try {
-    if (!parent || !parent.childNodes || parent.childNodes.length <= childIndex) {
-      return '';
-    }
-    const childNode = parent.childNodes[childIndex];
-    return childNode?.textContent?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting child node text:', error);
-    return '';
-  }
-}
 
 export async function scrapePDP(url: string): Promise<ProductData | null> {
   const fallback = new FallbackRegistry();
@@ -95,7 +72,7 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
       sold: sold ? sold.substring(0, 50) : "" // Limit sold text length
     };
 
-    console.log('Successfully scraped product:', { name, price: price, rating, sold });
+    // console.log('Successfully scraped product:', { name, price: price, rating, sold });
     return result;
 
   } catch (error) {
