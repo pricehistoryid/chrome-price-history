@@ -43,7 +43,6 @@ export async function updateProductPrice(productData: ProductData): Promise<void
       timestamp: new Date().toISOString()
     });
 
-    // Re-throw for caller to handle
-    throw new Error(`Failed to update product price: ${errorMessage}`);
+    // ponytail: silent failure to avoid user confusion in chrome://extensions
   }
 }

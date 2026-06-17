@@ -2,34 +2,128 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Price History</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet" />
     <style>
+      :root {
+        --brand-gradient: linear-gradient(135deg, #2fa252 0%, #52a8c9 100%);
+        --emerald: #2fa252;
+        --slate: #1f2937;
+        --gray: #6b7280;
+        --bg: #f9fafb;
+      }
+
       body {
-        font-family: sans-serif;
+        font-family: 'Outfit', sans-serif;
         margin: 0;
-        padding: 1rem;
-        width: 250px;
-        text-align: center;
+        padding: 0;
+        width: 320px;
+        background: var(--brand-gradient);
+        color: var(--slate);
+        min-height: 200px;
       }
-      a {
-        color: #007bff;
+
+      .container {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        margin-bottom: 4px;
+      }
+
+      .header h1 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 18px;
+        margin: 0;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: transform 0.2s ease-in-out;
+      }
+
+      .card:hover {
+        transform: scale(1.02);
+      }
+
+      .card-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--gray);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .current-price {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--slate);
+      }
+
+      .btn-portal {
+        background: var(--emerald);
+        color: white;
         text-decoration: none;
-        font-weight: bold;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 14px;
+        transition: background 0.2s;
       }
-      a:hover {
-        text-decoration: underline;
+
+      .btn-portal:hover {
+        filter: brightness(1.1);
+      }
+
+      .footer {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+        margin-top: 4px;
       }
     </style>
   </head>
   <body>
-    <h2>Welcome to Price History</h2>
-    <p>
-      We track prices as you browse
-    </p>
-    <p>
-      Visit
-      <a href="https://pricehistory.id" target="_blank">Price History</a>
-      website
-    </p>
+    <div class="container">
+      <div class="header">
+        <img src="/icon/32.png" alt="PH" width="24" height="24" />
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="text-align: center; font-size: 14px; color: var(--slate);">Checking Status...</div>
+      </div>
+
+      <a href="https://pricehistory.id" target="_blank" class="btn-portal">
+        Open Dashboard
+      </a>
+
+      <div class="footer">
+        Part of the PriceHistory.id ecosystem
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
   </body>
 </html>
