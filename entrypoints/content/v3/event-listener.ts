@@ -1,7 +1,7 @@
 import { ChartManager } from './chart';
 import { scrapePDP } from './scraper/tokopedia/pdp';
 import { PriceHistory } from './price-history';
-import { updateProductPrice } from './api';
+import { updateProductPrice, updateProductPrices } from './api';
 import { floatingButton, modal } from './inject';
 import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
@@ -184,7 +184,7 @@ async function processScraping(
       case 'search': {
         teardownModal();
         if (!result.result) return;
-        result.result.forEach((product) => updateProductPrice(product));
+        updateProductPrices(result.result);
         break;
       }
 

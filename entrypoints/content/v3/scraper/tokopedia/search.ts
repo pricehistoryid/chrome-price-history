@@ -1,7 +1,7 @@
 import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
 import { cleanPrice, cleanSold, safeGetHref, TOKOPEDIA_SELECTORS } from './clean';
-import { updateProductPrice } from '../../api';
+import { updateProductPrices } from '../../api';
 import { FallbackRegistry } from '../fallback';
 
 /**
@@ -11,6 +11,48 @@ const processedUrls = new Set<string>();
 
 let observer: IntersectionObserver | null = null;
 let mutationObserver: MutationObserver | null = null;
+// ponytail: buffer scroll-triggered items into bulk flushes (20 items / 2s idle)
+let pendingProducts: ProductData[] = [];
+let flushTimer: number | undefined = undefined;
+
+function scheduleFlush(): void {
+  if (flushTimer !== undefined) return;
+  flushTimer = window.setTimeout(() => {
+    flushTimer = undefined;
+    const batch = pendingProducts;
+    pendingProducts = [];
+    if (batch.length > 0) void updateProductPrices(batch);
+  }, 2000);
+}
+
+function queueProduct(product: ProductData): void {
+  pendingProducts.push(product);
+  if (pendingProducts.length >= 20) {
+    if (flushTimer !== undefined) {
+      window.clearTimeout(flushTimer);
+      flushTimer = undefined;
+    }
+    const batch = pendingProducts;
+    pendingProducts = [];
+    void updateProductPrices(batch);
+  } else {
+    scheduleFlush();
+  }
+}
+
+function flushPending(): void {
+  if (flushTimer !== undefined) {
+    window.clearTimeout(flushTimer);
+    flushTimer = undefined;
+  }
+  const batch = pendingProducts;
+  pendingProducts = [];
+  if (batch.length > 0) void updateProductPrices(batch);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushPending);
+}
 
 /**
  * Safely processes a single search result element using FallbackRegistry and heuristics
@@ -126,8 +168,8 @@ export async function scrapeSearch(_url: string): Promise<ProductData[] | null> 
         
         if (product && !processedUrls.has(product.url)) {
           processedUrls.add(product.url);
-          // Async update for newly scrolled items
-          updateProductPrice(product);
+          // Buffer scroll-triggered items into bulk flushes
+          queueProduct(product);
           
           // Once successfully processed, stop observing this card
           observer!.unobserve(card);
