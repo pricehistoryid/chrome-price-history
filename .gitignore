@@ -31,4 +31,3 @@ web-ext.config.ts
 *.sw?
 
 .claude/
-GEMINI.md
