@@ -174,9 +174,11 @@ async function processScraping(
 
         setupModal(ph);
         resetChart(chart);
-        ph.save(result.result[0], chart);
-
-        updateProductPrice(result.result[0]);
+        // ponytail: fire-and-forget; the promise chain serializes the storage write
+        void ph.save(result.result[0], chart).catch((error) => {
+          console.error('Error saving price history:', error);
+        });
+        void updateProductPrice(result.result[0]);
         break;
       }
 
@@ -184,7 +186,7 @@ async function processScraping(
       case 'search': {
         teardownModal();
         if (!result.result) return;
-        updateProductPrices(result.result);
+        void updateProductPrices(result.result);
         break;
       }
 

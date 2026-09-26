@@ -14,15 +14,12 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
   const selectors = TOKOPEDIA_SELECTORS.PDP;
 
   try {
-    // Wait for container element with timeout
-    await Promise.race([
-      waitForElement<HTMLDivElement>(selectors.container),
-      new Promise(resolve => setTimeout(resolve, 5000))
-    ]);
+    // ponytail: waitForElement already times out; 2s matches the pre-race effective timeout
+    await waitForElement<HTMLDivElement>(selectors.container, 2000);
 
     // Try multiple selectors for name via fallback registry
-    const name = await fallback.execute(selectors.name) ||
-                 await fallback.execute('h1') || '';
+    const name = fallback.execute(selectors.name) ||
+                 fallback.execute('h1') || '';
 
     // Use robust selectors with fallbacks
     const priceEl = document.querySelector(selectors.price) || document.querySelector('.price');

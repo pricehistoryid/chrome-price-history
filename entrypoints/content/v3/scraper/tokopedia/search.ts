@@ -1,6 +1,6 @@
 import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
-import { cleanPrice, cleanSold, safeGetHref, TOKOPEDIA_SELECTORS } from './clean';
+import { cleanPrice, safeGetHref, TOKOPEDIA_SELECTORS } from './clean';
 import { updateProductPrices } from '../../api';
 import { FallbackRegistry } from '../fallback';
 
@@ -51,58 +51,91 @@ function flushPending(): void {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('pagehide', flushPending);
+  // ponytail: the body-wide MutationObserver keeps firing after navigation away
+  window.addEventListener('pagehide', () => {
+    flushPending();
+    observer?.disconnect();
+    mutationObserver?.disconnect();
+  });
 }
 
 /**
  * Safely processes a single search result element using FallbackRegistry and heuristics
+ * ponytail: sync card parse; the caller resolves the lazy image
  */
-async function processSearchElement(product: Element, _index: number): Promise<ProductData | null> {
+function parseCard(product: Element, imageUrl: string): ProductData | null {
   const fallback = new FallbackRegistry();
   const selectors = TOKOPEDIA_SELECTORS.SEARCH;
 
   try {
-    const name = await fallback.execute(selectors.name, product);
-    const priceText = await fallback.execute(selectors.price, product);
-    
-    // Fallback for image: use direct querySelector since it's more reliable for specific tags
-    let imageEl = product.querySelector(selectors.image) as HTMLImageElement;
-    let imageUrl = imageEl?.src || '';
-
-    // Wait for lazy loaded image to replace placeholder
-    if (imageUrl.includes('85cc883d.svg')) {
-      for (let i = 0; i < 20; i++) { // Wait up to 4 seconds
-        await sleep(200);
-        imageEl = product.querySelector(selectors.image) as HTMLImageElement;
-        if (imageEl?.src && !imageEl.src.includes('85cc883d.svg')) {
-          imageUrl = imageEl.src;
-          break;
-        }
-      }
-    }
-    
-    if (!name || !priceText) {
-      return null;
-    }
+    const name = fallback.execute(selectors.name, product);
+    const priceText = fallback.execute(selectors.price, product);
+    if (!name || !priceText) return null;
 
     const result: ProductData = {
       url: safeGetHref(product, selectors.url),
       name: name.substring(0, 500),
       price: cleanPrice(priceText),
-      imageUrl: imageUrl,
-      rating: await fallback.execute(selectors.rating, product),
-      sold: await fallback.execute(selectors.sold, product)
+      imageUrl,
+      rating: fallback.execute(selectors.rating, product),
+      sold: fallback.execute(selectors.sold, product)
     };
 
     // Validate required fields
-    if (!result.url || !result.name || result.price === '0') {
-      return null;
-    }
+    if (!result.url || !result.name || result.price === '0') return null;
 
     return result;
   } catch (error) {
     // console.warn('Error processing search element:', error);
     return null;
+  }
+}
+
+// ponytail: Tokopedia shows a lazy-load placeholder before the real image settles
+const PLACEHOLDER_IMAGE = '85cc883d.svg';
+const IMAGE_POLL_MS = 200;
+const IMAGE_POLL_TRIES = 8;
+// ponytail: bound per-card retries so late-rendered cards are not silently dropped;
+// IntersectionObserver does not re-deliver for an already-observed target.
+const retryAttempts = new WeakMap<Element, number>();
+const MAX_CARD_RETRIES = 3;
+
+/**
+ * Resolves the lazy-loaded card image; '' when it does not settle within the
+ * bounded window (never the placeholder URL).
+ */
+async function resolveImageSrc(card: Element): Promise<string> {
+  const selector = TOKOPEDIA_SELECTORS.SEARCH.image;
+  for (let i = 0; i < IMAGE_POLL_TRIES; i++) {
+    const src = (card.querySelector(selector) as HTMLImageElement | null)?.src ?? '';
+    if (src && !src.includes(PLACEHOLDER_IMAGE)) return src;
+    await sleep(IMAGE_POLL_MS);
+  }
+  return '';
+}
+
+/**
+ * Resolves the image, parses the card, then queues it, retrying a bounded
+ * number of times so late-rendered cards are not lost.
+ */
+async function processCard(card: Element): Promise<void> {
+  const product = parseCard(card, await resolveImageSrc(card));
+
+  if (product && !processedUrls.has(product.url)) {
+    processedUrls.add(product.url);
+    // Buffer scroll-triggered items into bulk flushes
+    queueProduct(product);
+    // Once successfully processed, stop observing this card
+    observer?.unobserve(card);
+    return;
+  }
+
+  if (!product) {
+    const attempts = (retryAttempts.get(card) ?? 0) + 1;
+    if (attempts <= MAX_CARD_RETRIES) {
+      retryAttempts.set(card, attempts);
+      window.setTimeout(() => void processCard(card), 500);
+    }
   }
 }
 
@@ -129,26 +162,23 @@ export async function scrapeSearch(_url: string): Promise<ProductData[] | null> 
   // 1. Cleanup existing observers if re-initializing on URL change
   if (observer) observer.disconnect();
   if (mutationObserver) mutationObserver.disconnect();
+  // ponytail: reset per-search state; SPA re-entry otherwise grows unbounded
+  flushPending();
+  processedUrls.clear();
 
   // Wait for an actual product link to appear (not just a skeleton card)
-  const firstProductLink = await Promise.race([
-    waitForElement<HTMLAnchorElement>(`${selectors.card} ${selectors.url}`),
-    new Promise<HTMLAnchorElement | null>(resolve => {
-      setTimeout(() => resolve(null), 5000);
-    })
-  ]);
+  const firstProductLink = await waitForElement<HTMLAnchorElement>(`${selectors.card} ${selectors.url}`, 2000);
 
   if (!firstProductLink) return [];
-  await sleep(1000); // Allow time for images/text to populate
 
-  // 2. Process initially visible cards to return immediately
+  // 2. Process initially visible cards concurrently (bounded per-card image poll)
   const initialCards = Array.from(document.querySelectorAll(selectors.card));
   const visibleCards = initialCards.filter(c => !c.classList.contains('IOLazyloading') && isElementInViewport(c));
-  
+
   const initialResults: ProductData[] = [];
-  
-  for (const card of visibleCards) {
-    const product = await processSearchElement(card, 0);
+
+  const parsed = await Promise.all(visibleCards.map(async (card) => parseCard(card, await resolveImageSrc(card))));
+  for (const product of parsed) {
     if (product && !processedUrls.has(product.url)) {
       processedUrls.add(product.url);
       initialResults.push(product);
@@ -157,26 +187,17 @@ export async function scrapeSearch(_url: string): Promise<ProductData[] | null> 
 
   // 3. Setup IntersectionObserver for subsequent scrolling
   observer = new IntersectionObserver((entries) => {
-    entries.forEach(async (entry) => {
-      if (entry.isIntersecting) {
-        const card = entry.target;
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const card = entry.target;
 
-        // Skip skeleton loaders
-        if (card.classList.contains('IOLazyloading')) return;
+      // Skip skeleton loaders
+      if (card.classList.contains('IOLazyloading')) continue;
 
-        const product = await processSearchElement(card, 0);
-        
-        if (product && !processedUrls.has(product.url)) {
-          processedUrls.add(product.url);
-          // Buffer scroll-triggered items into bulk flushes
-          queueProduct(product);
-          
-          // Once successfully processed, stop observing this card
-          observer!.unobserve(card);
-        }
-      }
-    });
-  }, { 
+      // ponytail: bounded retries live in processCard; the observer never blocks on them
+      void processCard(card);
+    }
+  }, {
     threshold: 0.1,
     rootMargin: '100px' // Start loading slightly before they enter view
   });

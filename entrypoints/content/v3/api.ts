@@ -61,9 +61,12 @@ export async function updateProductPrices(products: ProductData[]): Promise<void
   if (valid.length === 0) return;
 
   try {
-    for (let i = 0; i < valid.length; i += MAX_BATCH) {
-      await sendBatch(valid.slice(i, i + MAX_BATCH));
-    }
+    const chunks: PricePayload[][] = [];
+    for (let i = 0; i < valid.length; i += MAX_BATCH) chunks.push(valid.slice(i, i + MAX_BATCH));
+    // ponytail: allSettled so every batch is attempted and no sibling rejection goes unhandled
+    const settled = await Promise.allSettled(chunks.map((batch) => sendBatch(batch)));
+    const rejected = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
+    if (rejected) throw rejected.reason;
     // console.log('Prices updated successfully via background script');
   } catch (error) {
     // Provide detailed error information

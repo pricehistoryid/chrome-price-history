@@ -93,7 +93,7 @@ export class FallbackRegistry {
         this.strategies.push(strategy);
     }
 
-    async execute(selector: string, context: Element = document.body): Promise<string | null> {
+    execute(selector: string, context: Element = document.body): string | null {
         const isDev = import.meta.env.DEV;
         const isXPath = selector.startsWith('/') || selector.startsWith('(') || selector.startsWith('./');
         

@@ -187,29 +187,22 @@ export function extractProductFromCard(
 }
 
 /**
- * Shared utility for scraping lists of products (Search, Wishlist)
- * Handles batching, delays, and error recovery.
+ * Shared utility for scraping lists of products (Search, Wishlist).
+ * ponytail: processors are sync DOM reads, run concurrently; cards that are not
+ * rendered yet get one bounded re-pass instead of a fixed pre-pass sleep.
  */
 export async function scrapeProductList(
   cardSelector: string,
-  processor: (el: Element, index: number) => Promise<ProductData | null>
+  processor: (el: Element, index: number) => ProductData | null | Promise<ProductData | null>
 ): Promise<ProductData[]> {
   try {
-    // Wait for at least one product card to appear
-    const firstCard = await Promise.race([
-      waitForElement<HTMLDivElement>(cardSelector),
-      new Promise<HTMLDivElement | null>(resolve => {
-        setTimeout(() => resolve(null), 5000); // 5 second timeout
-      })
-    ]);
+    // ponytail: 2s matches the pre-race effective timeout
+    const firstCard = await waitForElement<HTMLDivElement>(cardSelector, 2000);
 
     if (!firstCard) {
       console.warn(`Product cards ("${cardSelector}") not found within timeout`);
       return [];
     }
-
-    // Wait a bit for dynamic content to load
-    await sleep(1000);
 
     // Get all product elements
     const productElements = Array.from(document.querySelectorAll(cardSelector));
@@ -219,36 +212,16 @@ export async function scrapeProductList(
       return [];
     }
 
-    // Process products in batches to avoid overwhelming the page
-    const batchSize = 5;
-    const results: ProductData[] = [];
+    const results = await Promise.all(productElements.map((product, i) => processor(product, i)));
 
-    for (let i = 0; i < productElements.length; i += batchSize) {
-      const batch = productElements.slice(i, i + batchSize);
-
-      const batchPromises = batch.map((product, batchIndex) =>
-        processor(product, i + batchIndex)
-      );
-
-      try {
-        const batchResults = await Promise.all(batchPromises);
-        // Filter out nulls from non-product elements
-        for (const res of batchResults) {
-          if (res) results.push(res);
-        }
-
-        // Small delay between batches to avoid rate limiting or UI freezing
-        if (i + batchSize < productElements.length) {
-          await sleep(200);
-        }
-      } catch (error) {
-        console.error(`Error processing batch ${Math.floor(i / batchSize)}:`, error);
-        // Continue with next batch even if one fails
-      }
+    const missing = results.map((res, i) => (res === null ? i : -1)).filter(i => i >= 0);
+    if (missing.length > 0) {
+      await sleep(800);
+      const retried = await Promise.all(missing.map(i => processor(productElements[i], i)));
+      missing.forEach((index, j) => { results[index] = retried[j]; });
     }
 
-    return results;
-
+    return results.filter((res): res is ProductData => res !== null);
   } catch (error) {
     console.error('Error in scrapeProductList:', error);
     return [];

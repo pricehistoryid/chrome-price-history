@@ -3,8 +3,9 @@ import { extractProductFromCard, scrapeProductList, TOKOPEDIA_SELECTORS } from '
 
 /**
  * Safely processes a single wishlist product element with error handling
+ * ponytail: sync DOM read, zero awaits
  */
-async function processWishlistElement(product: Element, index: number): Promise<ProductData | null> {
+function processWishlistElement(product: Element, index: number): ProductData | null {
   const selectors = TOKOPEDIA_SELECTORS.WISHLIST;
   try {
     const result = extractProductFromCard(product, {
@@ -16,27 +17,16 @@ async function processWishlistElement(product: Element, index: number): Promise<
       soldPath: selectors.sold
     });
 
-    // Validate required fields
+    // ponytail: no synthetic "Product N" rows; unrendered cards are re-passed by scrapeProductList
     if (!result.url || !result.name) {
       console.warn(`Wishlist product ${index} missing required data`, { url: result.url, name: result.name });
-      return {
-        ...result,
-        name: result.name || `Product ${index}`,
-        price: result.price || '0',
-      };
+      return null;
     }
 
     return result;
   } catch (error) {
     console.error(`Error processing wishlist product ${index}:`, error);
-    return {
-      url: '',
-      name: `Product ${index} (Error)`,
-      price: '0',
-      imageUrl: '',
-      rating: null,
-      sold: ''
-    };
+    return null;
   }
 }
 
