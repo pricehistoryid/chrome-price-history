@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PriceHistory } from '../entrypoints/content/v3/price-history';
+import { PriceHistory, migratePriceData } from '../entrypoints/content/v3/price-history';
 
 type Stored = Record<string, any>;
 
@@ -33,5 +33,18 @@ describe('PriceHistory.save', () => {
     expect(Object.keys(stored)).toHaveLength(2);
     expect(stored['https://www.tokopedia.com/shop-a/sepatu-abc123'].prevPrice[0].price).toBe(100);
     expect(stored['https://www.tokopedia.com/shop-b/tas-def456'].prevPrice[0].price).toBe(200);
+  });
+});
+describe('migratePriceData', () => {
+  it('converts a legacy value record to price', () => {
+    expect(migratePriceData({ time: '2026-08-12', value: '15000' })).toEqual({
+      time: '2026-08-12',
+      price: 15000,
+    });
+  });
+
+  it('returns a modern record unchanged, by identity', () => {
+    const record = { time: '2026-08-12', price: 15000 };
+    expect(migratePriceData(record)).toBe(record);
   });
 });

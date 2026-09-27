@@ -4,7 +4,7 @@ interface ProductData {
   price: number | string;
 }
 
-interface PriceData {
+export interface PriceData {
   time: string;
   price: number;
 }
@@ -14,6 +14,20 @@ interface StoredData {
     prevPrice: PriceData[];
     lowestPrice: PriceData;
   };
+}
+
+/**
+ * Pre-refactor records stored the price under `value`. The popup reads raw
+ * storage, so it needs the same tolerance the save path has.
+ */
+export function migratePriceData(data: any): PriceData {
+  if (data && data.value !== undefined && data.price === undefined) {
+    return {
+      time: data.time,
+      price: Number(data.value)
+    };
+  }
+  return data as PriceData;
 }
 
 export class PriceHistory {
@@ -27,19 +41,6 @@ export class PriceHistory {
 
   constructor() {
     this.tzOffset = new Date().getTimezoneOffset() * 60000;
-  }
-
-  /**
-   * Migrates old PriceData objects from using 'value' to 'price'
-   */
-  private migratePriceData(data: any): PriceData {
-    if (data && data.value !== undefined && data.price === undefined) {
-      return {
-        time: data.time,
-        price: Number(data.value)
-      };
-    }
-    return data as PriceData;
   }
 
   save(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
@@ -69,8 +70,8 @@ export class PriceHistory {
 
     if (currentProduct) {
       // Migrate existing data if needed
-      currentProduct.prevPrice = (currentProduct.prevPrice || []).map((p: any) => this.migratePriceData(p));
-      currentProduct.lowestPrice = this.migratePriceData(currentProduct.lowestPrice);
+      currentProduct.prevPrice = (currentProduct.prevPrice || []).map((p: any) => migratePriceData(p));
+      currentProduct.lowestPrice = migratePriceData(currentProduct.lowestPrice);
     }
 
     this.ph = currentProduct || { prevPrice: [], lowestPrice: newData };
