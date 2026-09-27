@@ -70,6 +70,45 @@
         letter-spacing: 0.05em;
       }
 
+      .card-text {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--slate);
+      }
+
+      .product-block {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .price-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 12px;
+        color: var(--gray);
+      }
+
+      .caption {
+        font-size: 10px;
+        line-height: 1.5;
+        color: var(--gray);
+      }
+
+      .price-delta {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .price-delta.down {
+        color: var(--emerald);
+      }
+
+      .price-delta.up {
+        color: var(--slate);
+      }
+
       .price-row {
         display: flex;
         justify-content: space-between;
@@ -113,7 +152,25 @@
       </div>
 
       <div class="card">
-        <div class="card-title" style="text-align: center; font-size: 14px; color: var(--slate);">Checking Status...</div>
+        <div class="card-title" data-state="loading">Checking…</div>
+        <div class="card-text" data-state="pdp-untracked" hidden>Not tracked yet — open this page to record it</div>
+        <div class="card-text" data-state="search" hidden>Search page — tracking results as you scroll</div>
+        <div class="card-text" data-state="wishlist" hidden>Wishlist — tracking saved items</div>
+        <div class="card-text" data-state="tokopedia-other" hidden>Tokopedia page — no price to track here</div>
+        <div class="card-text" data-state="not-tokopedia" hidden>Not a Tokopedia page</div>
+        <div class="card-text" data-state="error" hidden>Couldn't read price data</div>
+        <div class="product-block" data-state="pdp-tracked" hidden>
+          <div class="card-title">Current</div>
+          <div class="price-row">
+            <span class="current-price" data-field="current">—</span>
+            <span class="price-delta" data-field="delta" hidden></span>
+          </div>
+          <div class="price-meta">
+            <span class="card-title">Lowest</span>
+            <span data-field="lowest">—</span>
+          </div>
+          <div class="caption" data-field="records">—</div>
+        </div>
       </div>
 
       <a href="https://pricehistory.id" target="_blank" class="btn-portal">
