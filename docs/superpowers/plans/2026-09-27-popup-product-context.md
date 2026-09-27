@@ -299,7 +299,7 @@ In `processScraping`, delete the wrapper `if (url.includes('tokopedia')) { ... }
 - [ ] **Step 3: Verify behaviour is preserved**
 
 Run: `./node_modules/.bin/vitest run`
-Expected: PASS, all suites (17 tests: 15 existing + 8 classifier + 2 migration, minus none removed).
+Expected: PASS, all suites — 25 tests (15 existing + 8 classifier + 2 migration).
 
 Run: `./node_modules/.bin/tsc --noEmit`
 Expected: only the 5 known pre-existing error groups listed in Global Constraints.
