@@ -7,6 +7,7 @@ import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
 import { scrapeSearch } from './scraper/tokopedia/search';
 import { ProductData } from './scraper/result';
+import { classifyPage } from '../../../shared/tokopedia-url';
 
 declare global {
   interface Window {
@@ -16,7 +17,7 @@ declare global {
   }
 }
 
-type tokopediaPageType = 'pdp' | 'wishlist' | 'merchant' | 'search';
+type tokopediaPageType = 'pdp' | 'wishlist' | 'search';
 
 interface tokopediaResult {
   pageType: tokopediaPageType | null,
@@ -103,39 +104,32 @@ export function setupTabListeners(modal: HTMLElement) {
 }
 
 async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
-  const parsedUrl = new URL(url);
-  const path = parsedUrl.pathname;
+  const page = classifyPage(url);
 
-  // PDP (product detail page)
-  if (/^\/[^/]+\/[^/]+-[a-z0-9]+/i.test(path)) {
-    const result = await scrapePDP(url);
-    return {
-      pageType: 'pdp',
-      result: result ? [result] : null,
-    };
+  switch (page.kind) {
+    case 'pdp': {
+      const result = await scrapePDP(url);
+      return {
+        pageType: 'pdp',
+        result: result ? [result] : null,
+      };
+    }
+
+    case 'wishlist':
+      return {
+        pageType: 'wishlist',
+        result: await scrapeWishlist(),
+      };
+
+    case 'search':
+      return {
+        pageType: 'search',
+        result: await scrapeSearch(url),
+      };
+
+    default:
+      return { pageType: null, result: null };
   }
-
-  // Wishlist
-  if (path.startsWith('/wishlist/')) {
-    const result = await scrapeWishlist();
-    return {
-      pageType: 'wishlist',
-      result: result,
-    };
-  }
-
-  // Search
-  if (path === '/search') {
-    console.log('scrape search page')
-    const result = await scrapeSearch(url);
-    console.log(result)
-    return {
-      pageType: 'search',
-      result: result,
-    };
-  }
-
-  return { pageType: null, result: null };
 }
 
 function setupModal(ph: PriceHistory) {
@@ -165,35 +159,33 @@ async function processScraping(
   chart: ChartManager,
   url: string
 ) {
-  if (url.includes('tokopedia')) {
-    const result = await scrapeTokopedia(url);
+  const result = await scrapeTokopedia(url);
 
-    switch (result.pageType) {
-      case 'pdp': {
-        if (!result.result) return;
+  switch (result.pageType) {
+    case 'pdp': {
+      if (!result.result) return;
 
-        setupModal(ph);
-        resetChart(chart);
-        // ponytail: fire-and-forget; the promise chain serializes the storage write
-        void ph.save(result.result[0], chart).catch((error) => {
-          console.error('Error saving price history:', error);
-        });
-        void updateProductPrice(result.result[0]);
-        break;
-      }
+      setupModal(ph);
+      resetChart(chart);
+      // ponytail: fire-and-forget; the promise chain serializes the storage write
+      void ph.save(result.result[0], chart).catch((error) => {
+        console.error('Error saving price history:', error);
+      });
+      void updateProductPrice(result.result[0]);
+      break;
+    }
 
-      case 'wishlist':
-      case 'search': {
-        teardownModal();
-        if (!result.result) return;
-        void updateProductPrices(result.result);
-        break;
-      }
+    case 'wishlist':
+    case 'search': {
+      teardownModal();
+      if (!result.result) return;
+      void updateProductPrices(result.result);
+      break;
+    }
 
-      default: {
-        teardownModal();
-        break;
-      }
+    default: {
+      teardownModal();
+      break;
     }
   }
 }
