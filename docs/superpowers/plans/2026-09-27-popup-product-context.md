@@ -613,7 +613,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '../entrypoints/popup/main';
 
 function loadPopupMarkup() {
-  const html = readFileSync(new URL('../entrypoints/popup/index.html', import.meta.url), 'utf8');
+  // ponytail: String(import.meta.url) defeats Vite's static asset-URL rewrite, which
+  // would otherwise resolve the literal form to an http://localhost:3000/ path that
+  // readFileSync rejects with ERR_INVALID_URL_SCHEME.
+  const html = readFileSync(new URL('../entrypoints/popup/index.html', String(import.meta.url)), 'utf8');
   document.body.innerHTML = new DOMParser().parseFromString(html, 'text/html').body.innerHTML;
 }
 
@@ -982,7 +985,7 @@ Run:
 python3 -m http.server 8777 --directory .output/chrome-mv3
 ```
 
-Open `http://127.0.0.1:8777/popup.html`. Expected: the card reads "Not a Tokopedia page" — `chrome.tabs` is absent in a plain page, so `render()` hits its catch and logs one console error. This is the proof that the old stuck "Checking Status..." state is gone. Stop the server with Ctrl-C afterwards.
+Open `http://127.0.0.1:8777/popup.html`. Expected: the card reads "Couldn't read price data" — `chrome.tabs` is absent in a plain page, so `chrome.tabs.query` throws, `render()` takes its catch branch, logs one console error, and sets the `error` state. This is the proof that the old stuck "Checking Status..." state is gone. Stop the server with Ctrl-C afterwards.
 
 - [ ] **Step 8: Commit**
 
