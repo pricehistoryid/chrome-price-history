@@ -17,13 +17,13 @@ Everything a Chrome Web Store (CWS) or Firefox Add-ons (AMO) submission asks for
 
 ## Short description (CWS limit: 132 characters)
 
-> Riwayat harga produk Tokopedia — harga terbaru, harga terendah, dan tren harga, langsung saat Anda berbelanja.
+> Riwayat harga produk Tokopedia dan Shopee — harga terbaru, harga terendah, dan tren harga, langsung saat Anda berbelanja.
 
 ## Detailed description (Bahasa Indonesia)
 
-**Riwayat harga di setiap halaman produk Tokopedia.**
+**Riwayat harga di setiap halaman produk Tokopedia dan Shopee.**
 
-Buka halaman produk apa pun di Tokopedia dan lihat riwayat harganya: harga terbaru, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
+Buka halaman produk apa pun di Tokopedia atau Shopee dan lihat riwayat harganya: harga terbaru, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
 
 **Yang Anda dapatkan**
 
@@ -38,11 +38,11 @@ Riwayat harga disimpan di peramban Anda. Harga yang terkumpul juga dikirim ke pr
 
 **Catatan**
 
-Ekstensi ini baru mendukung Tokopedia. Shopee, Lazada, dan Blibli belum didukung.
+Ekstensi ini mendukung halaman produk di Tokopedia dan Shopee. Halaman pencarian dan wishlist baru didukung di Tokopedia. Lazada dan Blibli belum didukung.
 
 ## English summary (for reviewers)
 
-Price History ID shows a price history chart on Tokopedia product pages: the current price, the lowest price recorded so far, and an average-price line. Product pages are recorded as you browse; the price points are also sent to pricehistory.id, the operator's own service. No analytics, no ads, no third-party sharing, no remote code.
+Price History ID shows a price history chart on Tokopedia and Shopee product pages: the current price, the lowest price recorded so far, and an average-price line. Product pages are recorded as you browse; the price points are also sent to pricehistory.id, the operator's own service. No analytics, no ads, no third-party sharing, no remote code.
 
 ## Permission justifications
 
@@ -52,15 +52,16 @@ CWS asks for a sentence per permission; paste these.
 |---|---|
 | `storage` | Stores the price history shown in the chart, the queued uploads that could not be delivered yet, and the position of the on-page button. Local to the browser. |
 | `tabs` | Reads the active tab's URL so the popup and the content script know which product page is open, and notifies the content script when navigation changes the URL. |
-| `activeTab`, `scripting` | Runs the price scraper on the Tokopedia page the user is viewing. |
+| `activeTab`, `scripting` | Runs the price scraper on the product page the user is viewing. |
 | `*://*.tokopedia.com/*` | Reads product name, price, image, rating, and units sold from the product, search, and wishlist pages the user opens. |
+| `*://*.shopee.co.id/*` | Reads the same fields from Shopee product pages, using the structured data Shopee publishes in the page. |
 | `https://pricehistory.id/*` | Uploads the collected price points to the operator's own service so price history survives across devices. |
 
-Single purpose statement: *the extension records and displays price history for products on Tokopedia.*
+Single purpose statement: *the extension records and displays price history for products on Tokopedia and Shopee.*
 
 ## Data disclosure
 
-What the extension sends to `pricehistory.id`, per the privacy policy: product URL, product name, product image URL, price, rating, and units sold — over HTTPS, with the extension's own credential. No personally identifying information, no authentication data, no health, financial, location, or communication data, no browsing history beyond the Tokopedia pages whose prices are read. Nothing is sold or shared with anyone but the operator's service. Collecting this is required for the extension's single purpose; there is no way to use the chart without it.
+What the extension sends to `pricehistory.id`, per the privacy policy: product URL, product name, product image URL, price, rating, and units sold — over HTTPS, with the extension's own credential. No personally identifying information, no authentication data, no health, financial, location, or communication data, no browsing history beyond the marketplace pages whose prices are read. Nothing is sold or shared with anyone but the operator's service. Collecting this is required for the extension's single purpose; there is no way to use the chart without it.
 
 ## Screenshots
 

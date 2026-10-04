@@ -10,13 +10,13 @@ The extension uses `chrome.storage.local`, which keeps data on this machine and 
 
 | Key | Contents | Why |
 |---|---|---|
-| `price_history` | For Tokopedia product pages you visit: the product URL, the prices recorded with their dates, and the lowest price seen | Draws the price chart and the popup summary |
+| `price_history` | For product pages you visit: the product URL, the prices recorded with their dates, and the lowest price seen | Draws the price chart and the popup summary |
 | `sync_queue` | Prices that could not be delivered to `pricehistory.id`, kept so they can be retried | Prevents collected prices from being lost |
 | `floating_button_position` | The vertical position you dragged the price button to | Keeps the button where you put it |
 
 ## What is sent to pricehistory.id
 
-On Tokopedia product pages, search results, and wishlist pages, the extension uploads the following fields over HTTPS to `https://pricehistory.id/api/v1/price`:
+On Shopee product pages, and on Tokopedia product pages, search results, and wishlist pages, the extension uploads the following fields over HTTPS to `https://pricehistory.id/api/v1/price`:
 
 - product URL
 - product name
@@ -30,7 +30,7 @@ Nothing else is transmitted. The extension does not send page content, search te
 ## What the extension does not do
 
 - No analytics, crash reporting, or advertising SDKs.
-- No reading of any page other than Tokopedia product, search, and wishlist pages.
+- No reading of any page other than Tokopedia product, search, and wishlist pages and Shopee product pages.
 - No data shared with anyone other than `pricehistory.id`.
 - No affiliate or referral links are generated today.
 
@@ -42,6 +42,7 @@ Nothing else is transmitted. The extension does not send page content, search te
 | `tabs` | Reading the active tab's URL so the popup and content script know which page you are on |
 | `activeTab`, `scripting` | Running the price scraper on the page you are viewing |
 | `*://*.tokopedia.com/*` | Reading prices from Tokopedia pages |
+| `*://*.shopee.co.id/*` | Reading prices from Shopee product pages |
 | `https://pricehistory.id/*` | Uploading collected prices |
 
 ## Your choices

@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Shopee product pages are recorded: name, image, rating and price come from the JSON-LD Shopee publishes in the page, and the sold count from its `Terjual` label
+- Products with variants record the low end of the price range, which is the figure the listing advertises
+- The page classifier covers both marketplaces, and the upload path's host allowlist moved into it — it would otherwise have rejected every Shopee product silently
+- The popup's page states are no longer Tokopedia-specific, and a Shopee search page honestly reports itself as not trackable
 - The popup and the chart modal are in Bahasa Indonesia, including the manifest description and the `id-ID` date format
 - The popup header shows "Riwayat Harga" next to the icon, which was previously unlabelled and invisible against the gradient
 - Store listing pack added: copy, permission justifications, data disclosure answers, and two 1280×800 screenshots

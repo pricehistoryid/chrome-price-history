@@ -30,7 +30,7 @@
 
 ---
 
-A browser extension for tracking price history on Indonesian online marketplaces. It currently tracks **Tokopedia** product pages, search results, and wishlists. Shopee, Lazada, and Blibli are not supported yet.
+A browser extension for tracking price history on Indonesian online marketplaces. It currently tracks **Tokopedia** product pages, search results, and wishlists, plus **Shopee** product pages. Lazada and Blibli are not supported yet.
 
 <div align="center">
   <a href="assets/store/screenshot-1-popup.png"><img src="assets/store/screenshot-1-popup.png" alt="Popup showing the latest price, the lowest price, and recent changes" width="49%"></a>
@@ -45,7 +45,7 @@ A browser extension for tracking price history on Indonesian online marketplaces
 - **Local Storage**: Price history is kept in `chrome.storage.local`, keyed by product URL
 - **API Synchronization**: Prices are uploaded to [pricehistory.id](https://pricehistory.id). Uploads that fail are queued locally and retried on the next successful one
 - **Real-time Updates**: Automatic price updates when browsing products
-- **E-commerce Support**: Tokopedia product pages, search results, and wishlists (Shopee, Lazada, and Blibli are not supported yet)
+- **E-commerce Support**: Tokopedia product pages, search results, and wishlists; Shopee product pages (Lazada and Blibli are not supported yet)
 
 ## Installation
 
@@ -158,12 +158,12 @@ We welcome contributions! Please follow these guidelines:
 
 ### Testing
 - Test on latest Chrome and Firefox versions
-- Verify functionality on actual Tokopedia pages
+- Verify functionality on actual Tokopedia and Shopee pages
 - Check for console errors and warnings
 
 ### Important Notes
 - Affiliate links are attached on pricehistory.id; the extension only hands the user off to the product page there
-- The extension focuses on Indonesian marketplaces, starting with Tokopedia
+- The extension focuses on Indonesian marketplaces: Tokopedia fully, Shopee product pages so far
 - Price history is stored locally and uploaded to pricehistory.id; see [docs/privacy-policy.md](docs/privacy-policy.md) for exactly what is sent
 
 ## Technology Stack
