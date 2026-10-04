@@ -30,20 +30,19 @@
 
 ---
 
-A Chrome extension for tracking price history from Indonesian online marketplaces. Monitor price fluctuations and get insights on product pricing trends across Tokopedia, Shopee, Lazada, and Blibli.
+A browser extension for tracking price history on Indonesian online marketplaces. It currently tracks **Tokopedia** product pages, search results, and wishlists. Shopee, Lazada, and Blibli are not supported yet.
 
 ![PriceHistoryID Promotional GIF](assets/screen-record.gif)
 
 ## Features
 
 ### Current Features
-- **Price History Charts**: Interactive charts showing price trends over time
+- **Price History Charts**: Interactive charts showing price trends over time, with lowest and average price lines
 - **Lowest Price Tracking**: Automatically track and highlight the lowest recorded price
-- **Local Storage**: Store price history locally in your browser
-- **API Synchronization**: Sync data with pricehistory.id for enhanced tracking
+- **Local Storage**: Price history is kept in `chrome.storage.local`, keyed by product URL
+- **API Synchronization**: Prices are uploaded to [pricehistory.id](https://pricehistory.id). Uploads that fail are queued locally and retried on the next successful one
 - **Real-time Updates**: Automatic price updates when browsing products
-- **E-commerce Support**: Complete price tracking and chart display from e-commerce products
-  - **Tokopedia**: Track prices from Tokopedia product page, search page, and wishlist page
+- **E-commerce Support**: Tokopedia product pages, search results, and wishlists (Shopee, Lazada, and Blibli are not supported yet)
 
 ## Installation
 
@@ -64,18 +63,19 @@ A Chrome extension for tracking price history from Indonesian online marketplace
 
 3. Build the extension:
    ```bash
-   npm run build
+   pnpm build          # Chrome  → .output/chrome-mv3
+   pnpm build:firefox  # Firefox → .output/firefox-mv2
    ```
 
 4. Load in Chrome:
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode" in the top right
-   - Click "Load unpacked" and select the `dist` folder
+   - Click "Load unpacked" and select `.output/chrome-mv3`
 
 5. Load in Firefox:
    - Open Firefox and navigate to `about:debugging`
    - Click "This Firefox" and then "Load Temporary Add-on"
-   - Select the `dist` folder
+   - Select any file inside `.output/firefox-mv2`
 
 ## Development Setup
 
@@ -120,6 +120,7 @@ A Chrome extension for tracking price history from Indonesian online marketplace
 ### Project Structure
 ```
 chrome-price-history/
+├── shared/              # Code shared by the popup and the content scripts
 ├── entrypoints/
 │   ├── content/          # Content scripts
 │   │   ├── v3/          # Latest version with TypeScript
@@ -158,8 +159,8 @@ We welcome contributions! Please follow these guidelines:
 
 ### Important Notes
 - Tokopedia affiliate links are currently disabled
-- The extension focuses on Indonesian marketplaces
-- All data is stored locally until API synchronization is available
+- The extension focuses on Indonesian marketplaces, starting with Tokopedia
+- Price history is stored locally and uploaded to pricehistory.id; see [docs/privacy-policy.md](docs/privacy-policy.md) for exactly what is sent
 
 ## Technology Stack
 

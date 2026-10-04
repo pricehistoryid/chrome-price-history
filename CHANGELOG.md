@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+- Prices that fail to upload are queued in `chrome.storage.local` and retried on the next successful upload instead of being dropped
+- The popup reports how many prices are waiting to sync
+- Corrected README claims about supported marketplaces, storage, and install paths
+- CI runs the test suite and both builds on every push
+
 ## [1.0.0] - 2025-12-10
 - `b12f586` release: bump to version 1.0.0
 - `4d53a69` fix: github workflow

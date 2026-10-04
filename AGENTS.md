@@ -25,6 +25,7 @@ Price History ID is a browser extension (Chrome & Firefox) built with the **WXT*
             - `chart.ts`: Logic for rendering the price history charts.
             - `api.ts`: Synchronization with `pricehistory.id`.
     - `popup/`: The extension popup UI.
+- `shared/`: Code used by more than one entrypoint — the Tokopedia page/URL classifier and the price sync queue.
 - `assets/`: Promotional and screen-recording assets.
 - `public/`: Static assets like extension icons.
 - `wxt.config.ts`: WXT and Manifest configuration.
