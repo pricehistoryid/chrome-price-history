@@ -159,7 +159,7 @@ We welcome contributions! Please follow these guidelines:
 - Check for console errors and warnings
 
 ### Important Notes
-- Tokopedia affiliate links are currently disabled
+- Affiliate links are attached on pricehistory.id; the extension only hands the user off to the product page there
 - The extension focuses on Indonesian marketplaces, starting with Tokopedia
 - Price history is stored locally and uploaded to pricehistory.id; see [docs/privacy-policy.md](docs/privacy-policy.md) for exactly what is sent
 
