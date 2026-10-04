@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- The popup and the price chart modal link to the product's page on pricehistory.id, where tracking and alerts live
+- Local price history is capped at 365 points per product and 200 products, newest first
 - Prices that fail to upload are queued in `chrome.storage.local` and retried on the next successful upload instead of being dropped
 - The popup reports how many prices are waiting to sync
 - Corrected README claims about supported marketplaces, storage, and install paths

@@ -61,17 +61,30 @@ Ordered by leverage.
 ## 4. Live findings that change priority
 
 - **`https://pricehistory.id/` returns HTTP 404** (Zoraxy "target host not found"), and so does `POST /api/v1/price`. Every price the extension has collected recently has been dropped silently. This makes item 3 the only piece of the backlog that is fixing active data loss.
-- **Items 2 and 4 cannot be built right now.** Identity needs app-issued credentials, and a product deep link needs a verified app route; the app is offline and no route appears anywhere in the repo (only the root `https://pricehistory.id` link, already in the popup).
+- **The app's product route was recovered from its own sitemap.** Archived captures of `pricehistory.id/sitemap.xml` list product URLs, and captures of those pages returned HTTP 200 (last seen January 2025). The shape is `https://pricehistory.id/product/<product-url-without-scheme, dots and slashes as dashes>`, which is what item 4 now builds. Caveat: the newest capture is 21 months old and the live app is down, so the route is unverified against today's deployment — worth one click before shipping.
+- **Item 2 still cannot be built.** Per-device identity needs credentials only the app can issue, and the app is offline.
 - **The shared token ships in the release artifact.** Any installed user can extract it and call the API as the extension.
 - **The production manifest carries dev host permissions** for `localhost:3000` and `localhost:3001`, plus a `ws://localhost` CSP entry.
 
-## 5. What is being implemented now, and why
+## 5. Where the work stands
 
-**Item 1** — the repository currently tells users to load a `dist` folder that does not exist, claims marketplaces the code does not support, and has no privacy policy, which the store requires for this permission set. All three are cheap and unblock shipping.
+**Shipped**
 
-**Item 3** — the API is down; each failed upload is enqueued locally instead of discarded, and a pending count is surfaced in the popup. Uploads resume on the next successful request, so no new permission is needed and no background alarm is required.
+- **Item 1** — README corrected (marketplaces, storage, install paths), CI runs the test suite and both builds before releasing, privacy policy added. The repository told users to load a `dist` folder that never existed and claimed marketplaces the code does not support.
+- **Item 3** — failed uploads are queued locally and drained on the next successful request; the popup reports the backlog. The API is down, so this is currently the only thing standing between an outage and permanent data loss.
+- **Item 4** — the popup's portal button and the chart modal's footer now deep-link to the product's page in the app, which is where tracking and alerts live. Uses the recovered route above.
+- **Item 10** — local history is bounded: 365 points per product and 200 products, ranked by newest price date.
 
-**Blocked, with reasons:** item 2 and item 4 need decisions and endpoints that only the app can provide (§4). Item 6 and item 7 are larger slices that want their own specs.
+**Next, in order**
+
+- **Item 6** — Shopee, then Lazada and Blibli. Biggest funnel expansion and the alert dataset grows with it.
+- **Item 8** — telemetry, so the funnel below is measurable at all.
+
+**Blocked, with reasons**
+
+- **Item 2** (per-device identity) needs the app to issue credentials. Until then every install shares one token: no payouts, no per-install limits, no per-user alert data.
+- **Item 7** (affiliate) needs the app to mint links.
+- **Item 9** (Bahasa Indonesia copy) is a product decision, not a build task.
 
 ## 6. Success metrics for the extension
 
