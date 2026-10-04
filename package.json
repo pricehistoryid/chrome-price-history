@@ -1,7 +1,7 @@
 {
   "name": "pricehistoryid",
   "version": "1.1.0",
-  "description": "Log product's prices from your favorite Indonesian online marketplace",
+  "description": "Catat riwayat harga produk dari marketplace favorit Anda di Indonesia",
   "type": "module",
   "scripts": {
     "dev": "wxt",

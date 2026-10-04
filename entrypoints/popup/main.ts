@@ -21,7 +21,7 @@ const formatIDR = new Intl.NumberFormat('id-ID', {
 }).format;
 
 // Stored dates are YYYY-MM-DD; UTC keeps the calendar day stable on any machine.
-const formatDate = new Intl.DateTimeFormat('en-GB', {
+const formatDate = new Intl.DateTimeFormat('id-ID', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
@@ -59,7 +59,7 @@ function renderPending(count: number) {
   if (!el) return;
 
   el.hidden = count === 0;
-  el.textContent = count === 0 ? '' : `${count} ${count === 1 ? 'price' : 'prices'} waiting to sync`;
+  el.textContent = count === 0 ? '' : `${count} harga menunggu sinkronisasi`;
 }
 
 export async function render(): Promise<void> {
@@ -76,7 +76,7 @@ export async function render(): Promise<void> {
     const portal = document.querySelector<HTMLAnchorElement>('.btn-portal');
     if (portal) {
       portal.href = productPageUrl(page.productKey);
-      portal.textContent = 'Open on PriceHistory.id';
+      portal.textContent = 'Buka di PriceHistory.id';
     }
 
     const stored = await chrome.storage.local.get(['price_history', SYNC_QUEUE_KEY]);
@@ -92,7 +92,7 @@ export async function render(): Promise<void> {
     setField('lowest', formatIDR(summary.lowest.price));
     setField(
       'records',
-      `${summary.recordCount} records · since ${formatDate(new Date(summary.firstSeen))}`,
+      `${summary.recordCount} catatan · sejak ${formatDate(new Date(summary.firstSeen))}`,
     );
     renderDelta(summary.delta);
 

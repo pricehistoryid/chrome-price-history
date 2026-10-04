@@ -2,7 +2,7 @@ import { createElement } from './utils/dom';
 import { floatingButton } from './floating-button';
 import { SITE_ORIGIN } from '../../../shared/pricehistory-url';
 
-const tabTrends = createElement('button', { class: 'tab-btn active', 'data-tab': 'trends' }, 'Trends');
+const tabTrends = createElement('button', { class: 'tab-btn active', 'data-tab': 'trends' }, 'Tren');
 const tabContainer = createElement('div', { class: 'tab-container' }, tabTrends);
 
 const chartPane = createElement('div', { class: 'tab-pane active', id: 'chart-container' });
@@ -18,7 +18,7 @@ const modalFooter = createElement(
   createElement(
     'a',
     { href: SITE_ORIGIN, target: '_blank', rel: 'noopener noreferrer' },
-    'Price alerts live on PriceHistory.id',
+    'Notifikasi harga ada di PriceHistory.id',
   ),
 );
 

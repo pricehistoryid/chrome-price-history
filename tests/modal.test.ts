@@ -20,7 +20,7 @@ describe('Modal Structure', () => {
 
     const buttons = tabContainer?.querySelectorAll('button');
     expect(buttons?.length).toBe(1);
-    expect(buttons?.[0].textContent).toBe('Trends');
+    expect(buttons?.[0].getAttribute('data-tab')).toBe('trends');
   });
 
   it('should have a content-container with one tab-pane: chart-container', () => {

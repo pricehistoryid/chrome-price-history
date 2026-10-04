@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Price History</title>
+    <title>Riwayat Harga</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@700&display=swap" rel="stylesheet" />
@@ -39,6 +39,13 @@
         gap: 8px;
         color: white;
         margin-bottom: 4px;
+      }
+
+      /* The icon is dark green on a green gradient, so it needs its own ground. */
+      .header img {
+        background-color: rgba(255, 255, 255, 0.92);
+        border-radius: 8px;
+        padding: 3px;
       }
 
       .header h1 {
@@ -148,25 +155,26 @@
   <body>
     <div class="container">
       <div class="header">
-        <img src="/icon/32.png" alt="PH" width="24" height="24" />
+        <img src="/icon/32.png" alt="" width="24" height="24" />
+        <h1>Riwayat Harga</h1>
       </div>
 
       <div class="card">
-        <div class="card-title" data-state="loading">Checking…</div>
-        <div class="card-text" data-state="pdp-untracked" hidden>Not tracked yet — open this page to record it</div>
-        <div class="card-text" data-state="search" hidden>Search page — tracking results as you scroll</div>
-        <div class="card-text" data-state="wishlist" hidden>Wishlist — tracking saved items</div>
-        <div class="card-text" data-state="tokopedia-other" hidden>Tokopedia page — no price to track here</div>
-        <div class="card-text" data-state="not-tokopedia" hidden>Not a Tokopedia page</div>
-        <div class="card-text" data-state="error" hidden>Couldn't read price data</div>
+        <div class="card-title" data-state="loading">Memeriksa…</div>
+        <div class="card-text" data-state="pdp-untracked" hidden>Belum dilacak — buka halaman ini untuk mencatatnya</div>
+        <div class="card-text" data-state="search" hidden>Halaman pencarian — hasil dilacak saat Anda menggulir</div>
+        <div class="card-text" data-state="wishlist" hidden>Wishlist — item tersimpan dilacak</div>
+        <div class="card-text" data-state="tokopedia-other" hidden>Halaman Tokopedia — tidak ada harga untuk dilacak</div>
+        <div class="card-text" data-state="not-tokopedia" hidden>Bukan halaman Tokopedia</div>
+        <div class="card-text" data-state="error" hidden>Data harga tidak bisa dibaca</div>
         <div class="product-block" data-state="pdp-tracked" hidden>
-          <div class="card-title">Current</div>
+          <div class="card-title">Harga kini</div>
           <div class="price-row">
             <span class="current-price" data-field="current">—</span>
             <span class="price-delta" data-field="delta" hidden></span>
           </div>
           <div class="price-meta">
-            <span class="card-title">Lowest</span>
+            <span class="card-title">Terendah</span>
             <span data-field="lowest">—</span>
           </div>
           <div class="caption" data-field="records">—</div>
@@ -175,11 +183,11 @@
       </div>
 
       <a href="https://pricehistory.id" target="_blank" class="btn-portal">
-        Open Dashboard
+        Buka Dashboard
       </a>
 
       <div class="footer">
-        Part of the PriceHistory.id ecosystem
+        Bagian dari ekosistem PriceHistory.id
       </div>
     </div>
     <script type="module" src="./main.ts"></script>
