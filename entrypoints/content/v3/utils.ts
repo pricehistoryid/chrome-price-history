@@ -24,7 +24,8 @@ export function waitForElement<T extends Element>(
 }
 
 export function sleep(ms: number): Promise<void> {
-  const { promise, resolve } = Promise.withResolvers<void>();
-  setTimeout(resolve, ms);
-  return promise;
+  // ponytail: plain Promise + setTimeout. Promise.withResolvers would be
+  // shorter, but it is ES2024, and the build ships `esnext` untranspiled to
+  // content scripts running in whatever browser the user has.
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
