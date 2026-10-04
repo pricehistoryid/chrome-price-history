@@ -30,6 +30,41 @@ export function migratePriceData(data: any): PriceData {
   return data as PriceData;
 }
 
+export interface StoredProduct {
+  prevPrice: PriceData[];
+  lowestPrice: PriceData;
+}
+
+/** One point per price change, newest first. */
+export const MAX_PRICE_POINTS = 365;
+
+/**
+ * ponytail: 200 products × 365 points ≈ 3 MB, inside the 10 MB
+ * chrome.storage.local budget. Products are ranked by their newest price date,
+ * so the ones you stopped visiting are the ones evicted. Add a real last-seen
+ * field if eviction ever has to be exact.
+ */
+export const MAX_TRACKED_PRODUCTS = 200;
+
+/**
+ * Trims what the chart can draw: newest points per product, most recently
+ * visited products. `lowestPrice` is stored separately, so it survives.
+ */
+export function prunePriceHistory(ph: Record<string, StoredProduct>): Record<string, StoredProduct> {
+  const entries = Object.entries(ph).map(
+    ([url, record]) =>
+      [url, { ...record, prevPrice: record.prevPrice.slice(0, MAX_PRICE_POINTS) }] as const,
+  );
+
+  if (entries.length <= MAX_TRACKED_PRODUCTS) return Object.fromEntries(entries);
+
+  return Object.fromEntries(
+    entries
+      .sort(([, a], [, b]) => (b.prevPrice[0]?.time ?? '').localeCompare(a.prevPrice[0]?.time ?? ''))
+      .slice(0, MAX_TRACKED_PRODUCTS),
+  );
+}
+
 export class PriceHistory {
   private tzOffset: number;
   private ph: {
@@ -96,10 +131,11 @@ export class PriceHistory {
         lowestPrice: this.ph!.lowestPrice,
       };
 
-      await chrome.storage.local.set({ price_history: ph });
+      const pruned = prunePriceHistory(ph);
+      await chrome.storage.local.set({ price_history: pruned });
+      this.ph = pruned[url] ?? this.ph;
     }
 
-    this.ph = ph[url];
     chart.print(this.ph);
   }
 

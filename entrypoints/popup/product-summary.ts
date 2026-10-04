@@ -1,9 +1,6 @@
-import { migratePriceData, type PriceData } from '../content/v3/price-history';
+import { migratePriceData, type PriceData, type StoredProduct } from '../content/v3/price-history';
 
-export interface StoredProduct {
-  prevPrice: PriceData[];
-  lowestPrice: PriceData;
-}
+export type { StoredProduct };
 
 /** Keys written by earlier builds may carry a query string, hash, or trailing slash. */
 function stripKeyNoise(key: string): string {
