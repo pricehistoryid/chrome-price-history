@@ -17,7 +17,7 @@ Not in scope (deliberate):
 - Sparkline / chart rendering in the popup.
 - Actions: "open this product's chart" (needs a new popup→content-script message type) and "forget this product" (destructive write).
 - Tracked-product count in non-PDP states — see Decisions.
-- The 10-record storage cap `TODO.md` claims exists; it does not exist in code.
+- The 10-record storage cap the old roadmap claimed; it does not exist in code.
 - Multi-marketplace support, any new permission, any new messaging channel.
 
 ## Architecture & Data Flow

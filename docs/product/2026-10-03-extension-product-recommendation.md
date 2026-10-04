@@ -8,14 +8,14 @@ Status: recommendation, not yet reviewed.
 
 Evidence from the code, not the README — the two disagree.
 
-| Reality | Where | README/TODO says |
+| Reality | Where | README/roadmap said |
 |---|---|---|
 | Tokopedia only | `entrypoints/content/v3/scraper/tokopedia/*`, host permission `*://*.tokopedia.com/*` | "across Tokopedia, Shopee, Lazada, and Blibli" |
 | PDP writes a local chart and POSTs to the API; search and wishlist pages POST to the API and show the user nothing | `event-listener.ts` → `processScraping` (`search`/`wishlist` branch calls `teardownModal()`, never `ph.save`) | "Complete price tracking" |
 | Sync is live | `api.ts` → `UPDATE_PRODUCT_PRICE` → `background.ts` → `POST /api/v1/price` | "All data is stored locally until API synchronization is available" |
 | `prevPrice` grows without limit; no cap or eviction | `price-history.ts` `saveNow` | "limited to 10 latest prices" |
-| Affiliate code: none | no matches for `affiliate` outside README/TODO | Phase 1 deliverable |
-| Analytics: none. No `alarms`, no `notifications` | `wxt.config.ts` permissions; no telemetry matches | TODO targets installs/DAU/rating |
+| Affiliate code: none | no matches for `affiliate` outside README and the roadmap | Phase 1 deliverable |
+| Analytics: none. No `alarms`, no `notifications` | `wxt.config.ts` permissions; no telemetry matches | the roadmap targeted installs/DAU/rating |
 | One shared JWT is compiled into every install | `background.ts` reads `VITE_API_JWT_TOKEN`; token present in `.output/chrome-mv3/background.js` | — |
 | CI builds and releases but never runs the test suite | `.github/workflows/main.yml` | "Test thoroughly" |
 
@@ -44,9 +44,9 @@ Ordered by leverage.
 | 5 | **On-page value** — portfolio in the popup, "lowest price" chip on search/wishlist cards | Makes the harvesting defensible; search and wishlist pages currently give the user nothing | M | — |
 | 6 | **Marketplace coverage** — Shopee, then Lazada, Blibli | Volume in Indonesia; also widens the alert dataset | M each | — |
 | 7 | **Affiliate MVP** — explicit buy buttons plus a redirect interstitial, never a silent URL rewrite | The whole revenue thesis; 0 lines exist | M | App must mint links |
-| 8 | **Telemetry** — install, scrape success per marketplace, chart open, clickout, consent-gated | The TODO's own success criteria are unverifiable today | S | App endpoint |
+| 8 | **Telemetry** — install, scrape success per marketplace, chart open, clickout, consent-gated | The roadmap's own success criteria are unverifiable today | S | App endpoint |
 | 9 | **Consent screen and Bahasa Indonesia copy** | Trust, and market fit for an Indonesian audience | S | — |
-| 10 | **Storage policy** — cap or roll up `prevPrice` | Unbounded growth will hit quota; TODO's "10 records" cap is fiction | S | — |
+| 10 | **Storage policy** — cap or roll up `prevPrice` | Unbounded growth will hit quota; the roadmap's "10 records" cap was never implemented | S | — |
 
 ### App owns (do not build in the extension)
 

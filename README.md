@@ -178,7 +178,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For support and questions:
 - Open an issue on GitHub
-- Check the [TODO.md](TODO.md) file for planned features
+- Read [docs/product/2026-10-03-extension-product-recommendation.md](docs/product/2026-10-03-extension-product-recommendation.md) for where the extension is headed
 - Review the [CHANGELOG.md](CHANGELOG.md) for recent updates
 
 ## Acknowledgments
