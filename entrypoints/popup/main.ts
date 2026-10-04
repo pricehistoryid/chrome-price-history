@@ -1,5 +1,6 @@
 import { classifyPage } from '../../shared/tokopedia-url';
 import { SYNC_QUEUE_KEY, pendingCount } from '../../shared/sync-queue';
+import { productPageUrl } from '../../shared/pricehistory-url';
 import { buildProductSummary, findProductRecord } from './product-summary';
 
 type CardState =
@@ -69,6 +70,13 @@ export async function render(): Promise<void> {
     if (page.kind !== 'pdp') {
       showState(page.kind);
       return;
+    }
+
+    // Hand off to the app, which is where tracking and price alerts live.
+    const portal = document.querySelector<HTMLAnchorElement>('.btn-portal');
+    if (portal) {
+      portal.href = productPageUrl(page.productKey);
+      portal.textContent = 'Open on PriceHistory.id';
     }
 
     const stored = await chrome.storage.local.get(['price_history', SYNC_QUEUE_KEY]);

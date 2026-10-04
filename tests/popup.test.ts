@@ -229,3 +229,25 @@ describe('popup sync backlog', () => {
     expect(fieldText('pending')).toBe('3 prices waiting to sync');
   });
 });
+
+describe('popup handoff', () => {
+  function portalHref() {
+    return document.querySelector<HTMLAnchorElement>('.btn-portal')?.getAttribute('href');
+  }
+
+  it('links a product tab to that product in the app', async () => {
+    setActiveTab('https://www.tokopedia.com/shop-a/sepatu-abc123');
+
+    await render();
+
+    expect(portalHref()).toBe('https://pricehistory.id/product/www-tokopedia-com-shop-a-sepatu-abc123');
+  });
+
+  it('keeps the dashboard link on pages with no product', async () => {
+    setActiveTab('https://www.tokopedia.com/search?q=sepatu');
+
+    await render();
+
+    expect(portalHref()).toBe('https://pricehistory.id');
+  });
+});

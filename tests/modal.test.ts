@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { modal } from '../entrypoints/content/v3/inject';
-import { setupTabListeners } from '../entrypoints/content/v3/event-listener';
+import { pointFooterAtProduct, setupTabListeners } from '../entrypoints/content/v3/event-listener';
 
 beforeAll(() => {
   const mockStorage = {
@@ -40,5 +40,16 @@ describe('Modal Functionality', () => {
     
     closeBtn.click();
     expect(modal.style.display).toBe('none');
+  });
+});
+
+describe('Modal handoff', () => {
+  it('points the footer at the product page in the app', () => {
+    pointFooterAtProduct('https://www.tokopedia.com/shop-a/sepatu-abc123');
+
+    const link = modal.querySelector<HTMLAnchorElement>('.modal-footer a');
+    expect(link?.getAttribute('href')).toBe(
+      'https://pricehistory.id/product/www-tokopedia-com-shop-a-sepatu-abc123',
+    );
   });
 });

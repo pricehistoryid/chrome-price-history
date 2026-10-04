@@ -8,6 +8,7 @@ import { scrapeWishlist } from './scraper/tokopedia/wishlist';
 import { scrapeSearch } from './scraper/tokopedia/search';
 import { ProductData } from './scraper/result';
 import { classifyPage } from '../../../shared/tokopedia-url';
+import { productPageUrl } from '../../../shared/pricehistory-url';
 
 declare global {
   interface Window {
@@ -140,6 +141,12 @@ function setupModal(ph: PriceHistory) {
   }
 }
 
+/** The modal outlives SPA navigation, so this runs on every product page. */
+export function pointFooterAtProduct(url: string) {
+  const link = modal.querySelector<HTMLAnchorElement>('.modal-footer a');
+  if (link) link.href = productPageUrl(url);
+}
+
 function teardownModal() {
   floatingButton.getElement().remove();
   modal.remove();
@@ -166,6 +173,7 @@ async function processScraping(
       if (!result.result) return;
 
       setupModal(ph);
+      pointFooterAtProduct(url);
       resetChart(chart);
       // ponytail: fire-and-forget; the promise chain serializes the storage write
       void ph.save(result.result[0], chart).catch((error) => {
