@@ -79,7 +79,7 @@ To regenerate them after a UI change:
 3. Build the chart bundle so the modal renders the real chart rather than a drawing:
    `node -e "require('./node_modules/.pnpm/node_modules/esbuild').build({entryPoints:['.chart-shot-entry.ts'],bundle:true,format:'esm',minify:true,outfile:'<scratch>/chart.js'})"`
    where `.chart-shot-entry.ts` imports `ChartManager` from `entrypoints/content/v3/chart` and calls `print()` with a few weeks of prices.
-4. Compose each shot as a 1280×800 page: headline, one line of supporting copy, and the UI in an iframe sized to its own height.
+4. Compose each shot as a 1280×800 page: headline, one line of supporting copy, and the UI in an iframe sized to its own **width and** height. An iframe defaults to 300px wide, which silently clips the popup's 320px body on the right — set the width explicitly to 320px.
 5. Screenshot at a 1280×800 viewport, then resample to exactly 1280×800 if the browser rendered at a higher device scale (`sips --resampleWidth 1280 in.png --out out.png`).
 
 ## Submission checklist
