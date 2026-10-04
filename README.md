@@ -32,7 +32,10 @@
 
 A browser extension for tracking price history on Indonesian online marketplaces. It currently tracks **Tokopedia** product pages, search results, and wishlists. Shopee, Lazada, and Blibli are not supported yet.
 
-![PriceHistoryID Promotional GIF](assets/screen-record.gif)
+<div align="center">
+  <a href="assets/store/screenshot-1-popup.png"><img src="assets/store/screenshot-1-popup.png" alt="Popup showing the latest price, the lowest price, and recent changes" width="49%"></a>
+  <a href="assets/store/screenshot-2-chart.png"><img src="assets/store/screenshot-2-chart.png" alt="Price history chart with the average and lowest price lines" width="49%"></a>
+</div>
 
 ## Features
 
