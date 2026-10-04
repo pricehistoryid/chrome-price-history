@@ -16,61 +16,60 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Removed a dead `zip.sources` option that WXT ignores, and a redundant crosshair unsubscribe call the chart library rejects
 
 ## [1.0.0] - 2025-12-10
-- `b12f586` release: bump to version 1.0.0
-- `4d53a69` fix: github workflow
-- `9bb0d7e` fix: build error
-- `4e9682b` fix: resolve critical security and performance issues
-- `0ffe65b` fix: exposed credentials
-- `9fd8902` feat: change url to full url with location.origin
-- `75df92d` fix: tokopedia wishlist scraper
-- `34016a4` feat: scraping tokopedia is now async and await for specific element instead of using timer
-- `21f6e01` fix: change main function on document complete or interactive else add event listener on DOMContentLoaded
-- `cc7c7b3` fix: tokopedia url pattern
-- `d6c3f72` chore: update README.md
-- `ae7771c` feat: add github action
-- `05a14ac` feat: migrate to wxt framework
+- `f3c8c1c` release: bump to version 1.0.0
+- `aedea9d` fix: github workflow
+- `2c9d330` fix: build error
+- `f7a4574` fix: resolve critical security and performance issues
+- `1e2afbe` fix: exposed credentials
+- `4c41418` feat: change url to full url with location.origin
+- `4f0d1c7` fix: tokopedia wishlist scraper
+- `eab0181` feat: scraping tokopedia is now async and await for specific element instead of using timer
+- `25ceb5a` fix: change main function on document complete or interactive else add event listener on DOMContentLoaded
+- `4698f66` fix: tokopedia url pattern
+- `5b40d9f` chore: update README.md
+- `900661d` feat: add github action
+- `c226078` feat: migrate to wxt framework
 
 ## [0.4.0] - 2025-06-16
-- `1c5b1f9` feat: new logo
-- `c6c50cd` fix: query selector on tokopedia image
+- `0a633b7` feat: new logo
+- `079b40b` fix: query selector on tokopedia image
 
 ## [0.3.0] - 2024-12-16
-- `094e411` feat: finalizes for pricehistory web app
-- `728cbc4` fix: remove url path parameter
-- `35de580` fix: standardize data sent to backend
-- `91febd1` feat: refactor repetitive lines
-- `932becc` fix: tokopedia listen on url change on specific url pattern
-- `b65556d` fix: remove sync feature (temp)
-- `b5dd6e9` fix: change api endpoint
-- `db74324` feat: move old script into v1 directory
-- `b0b139b` fix: linting v2 scripts
-- `523c4ea` feature: add v2 scripts
-- `51650e2` fix: linting inject.js
-- `712b5ea` fix: initiate favorite list element
-- `8861e26` feature: tidy directories part 2
-- `5813bf7` feature: tidy directories
-- `8f1ae93` feature: remove https from url
-- `d89029a` fix: different value same day will create new record
-- `65340d4` feature: limit max 3 synced items
-- `fc928ba` feature: sync across device with same account
-- `97a8fcc` feature: get user info
-- `2a03fd3` feature: refactor modal.js
-- `c363be2` docs: update README.md
+- `c28a589` feat: finalizes for pricehistory web app
+- `41db444` fix: remove url path parameter
+- `a410f63` fix: standardize data sent to backend
+- `0f47293` feat: refactor repetitive lines
+- `84080e0` fix: tokopedia listen on url change on specific url pattern
+- `aea8955` fix: remove sync feature (temp)
+- `def1eb2` fix: change api endpoint
+- `b73a78a` feat: move old script into v1 directory
+- `dbcd1e9` fix: linting v2 scripts
+- `85ecd3d` feature: add v2 scripts
+- `07b7b84` fix: linting inject.js
+- `2a5faa6` fix: initiate favorite list element
+- `e581fdd` feature: tidy directories part 2
+- `b3d1ea6` feature: tidy directories
+- `4ad2560` feature: remove https from url
+- `5472678` fix: different value same day will create new record
+- `aa9c66d` feature: limit max 3 synced items
+- `8fc41ee` feature: sync across device with same account
+- `0884016` feature: get user info
+- `115c245` feature: refactor modal.js
+- `fe7ed6c` docs: update README.md
 
 ## [0.2.0] - 2024-01-24
-- `a6f23b9` feature: brand new tooltips
-- `74d9c44` fix: timezone fix and remove unused data from storage
-- `5c80088` feature: create price trend line
+- `265c109` feature: brand new tooltips
+- `2e182c6` fix: timezone fix and remove unused data from storage
+- `18ff7fd` feature: create price trend line
 
 ## [0.1.0] - 2024-01-07
-- `50bc730` feature: add average price line
-- `b095cb7` feature: update issue templates
-- `ca985d9` feature: add README.md and screen-record.gif
-- `4d45759` docs: update todo
-- `8aa828d` feature: add logo
-- `e323665` feature: fix price parsing and remove debug output
-- `f6cf9bf` feature: rename extension
-- `6ad6ca0` fix: replace all dot in price
-- `8504d9a` feature: box sizing using border-box
-- `d270427` feature: add chart
-- `5364747` feature: add logo
+- `b4915fb` feature: add average price line
+- `dc48d82` feature: update issue templates
+- `396fd10` feature: add README.md and screen-record.gif
+- `fc42854` feature: add logo
+- `0cf8d89` feature: fix price parsing and remove debug output
+- `e0b594c` feature: rename extension
+- `9018bc9` fix: replace all dot in price
+- `a88f98c` feature: box sizing using border-box
+- `f7a29fb` feature: add chart
+- `c102a37` feature: add logo
