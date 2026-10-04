@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { ChartManager } from '../entrypoints/content/v3/chart.ts';
+import { ChartManager } from '../entrypoints/content/v3/chart';
 import { createChart } from 'lightweight-charts';
 
 // Mock lightweight-charts
@@ -54,9 +54,9 @@ describe('Magnifier Tooltip Implementation', () => {
     it('should disable horizontal crosshair line and enable vertical crosshair line', () => {
       const chartManager = new ChartManager(containerId);
       const mockData = [
-        { time: 1642425322 as any, value: 6000 }
+        { time: 1642425322 as any, price: 6000 }
       ];
-      const mockLowestPrice = { time: 1642425322 as any, value: 6000 };
+      const mockLowestPrice = { time: 1642425322 as any, price: 6000 };
 
       chartManager.print({
         prevPrice: mockData,
@@ -80,7 +80,7 @@ describe('Magnifier Tooltip Implementation', () => {
     it('should create a tooltip DOM element with correct styles', () => {
       const chartManager = new ChartManager(containerId);
       const mockData = [
-        { time: 1642425322 as any, value: 6000 }
+        { time: 1642425322 as any, price: 6000 }
       ];
       
       chartManager.print({
@@ -97,7 +97,7 @@ describe('Magnifier Tooltip Implementation', () => {
     it('should snap tooltip to the data point coordinates', () => {
       const chartManager = new ChartManager(containerId);
       const mockData = [
-        { time: 1642425322 as any, value: 6000 }
+        { time: 1642425322 as any, price: 6000 }
       ];
       
       chartManager.print({
@@ -133,7 +133,7 @@ describe('Magnifier Tooltip Implementation', () => {
     it('should bind and format price and date data correctly', () => {
       const chartManager = new ChartManager(containerId);
       const mockData = [
-        { time: 1642425322 as any, value: 6543210 }
+        { time: 1642425322 as any, price: 6543210 }
       ];
       
       chartManager.print({

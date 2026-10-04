@@ -43,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Type-check
+        run: pnpm exec wxt prepare && pnpm exec tsc --noEmit
+
       - name: Run tests
         run: pnpm exec vitest run
 

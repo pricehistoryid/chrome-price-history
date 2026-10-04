@@ -236,11 +236,6 @@ export class ChartManager {
 
   clear() {
     try {
-      // Clean up event listeners
-      if (this.chart) {
-        this.chart.unsubscribeCrosshairMove();
-      }
-
       // Remove tooltip if it exists
       const container = document.getElementById(this.containerId);
       if (container) {

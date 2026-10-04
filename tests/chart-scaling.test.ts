@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ChartManager } from '../entrypoints/content/v3/chart.ts';
+import { ChartManager } from '../entrypoints/content/v3/chart';
 import { createChart, LineSeries } from 'lightweight-charts';
 
 // Mock lightweight-charts

@@ -98,7 +98,7 @@ export function validateAndParsePrice(price: string | number): number {
 /**
  * Validates and parses rating
  */
-export function validateAndParseRating(rating?: string | number): number | null {
+export function validateAndParseRating(rating?: string | number | null): number | null {
   if (rating === null || rating === undefined || rating === '') {
     return null;
   }
@@ -119,7 +119,7 @@ export function validateAndParseRating(rating?: string | number): number | null 
 /**
  * Validates and parses sold count
  */
-export function validateAndParseSold(sold?: string | number): number {
+export function validateAndParseSold(sold?: string | number | null): number {
   if (sold === null || sold === undefined || sold === '') {
     return 0;
   }
