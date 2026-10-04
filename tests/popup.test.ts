@@ -90,9 +90,10 @@ function fieldText(name: string): string {
   return (el?.textContent ?? '').replace(/\u00a0/g, ' ');
 }
 
-function setStoredRecord(record: unknown) {
+function setStoredRecord(record: unknown, queue: unknown = undefined) {
   (global as any).chrome.storage.local.get = vi.fn(async () => ({
     price_history: { 'https://www.tokopedia.com/shop-a/sepatu-abc123': record },
+    sync_queue: queue,
   }));
 }
 
@@ -169,5 +170,62 @@ describe('popup tracked product', () => {
     expect(visibleState()).toBe('pdp-tracked');
     expect(fieldText('current')).toBe('Rp 1.000.000');
     expect(fieldText('delta')).toBe('↓ Rp 120.000');
+  });
+});
+
+describe('popup sync backlog', () => {
+  beforeEach(() => {
+    setActiveTab('https://www.tokopedia.com/shop-a/sepatu-abc123');
+  });
+
+  function queued(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      url: `https://www.tokopedia.com/shop-a/item-${i}`,
+      name: 'Product',
+      image_url: '',
+      price: 1000,
+      rating: 0,
+      sold: 0,
+    }));
+  }
+
+  function pendingLine() {
+    return document.querySelector<HTMLElement>('[data-field="pending"]');
+  }
+
+  it('reports prices that have not reached the API', async () => {
+    setStoredRecord(trackedRecord, queued(2));
+
+    await render();
+
+    expect(visibleState()).toBe('pdp-tracked');
+    expect(pendingLine()?.hidden).toBe(false);
+    expect(fieldText('pending')).toBe('2 prices waiting to sync');
+  });
+
+  it('uses the singular for one queued price', async () => {
+    setStoredRecord(trackedRecord, queued(1));
+
+    await render();
+
+    expect(fieldText('pending')).toBe('1 price waiting to sync');
+  });
+
+  it('stays hidden when nothing is queued', async () => {
+    setStoredRecord(trackedRecord);
+
+    await render();
+
+    expect(pendingLine()?.hidden).toBe(true);
+    expect(fieldText('pending')).toBe('');
+  });
+
+  it('reports the backlog for a product that was never tracked', async () => {
+    setStoredRecord(undefined, queued(3));
+
+    await render();
+
+    expect(visibleState()).toBe('pdp-untracked');
+    expect(fieldText('pending')).toBe('3 prices waiting to sync');
   });
 });

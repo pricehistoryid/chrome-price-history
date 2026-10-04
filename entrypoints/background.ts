@@ -1,10 +1,26 @@
+import {
+  SYNC_QUEUE_KEY,
+  batchForUpload,
+  mergeIntoQueue,
+  readQueue,
+  type QueuedPrice
+} from '../shared/sync-queue';
+
 export default defineBackground(() => {
   // Listen for messages from content scripts
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'UPDATE_PRODUCT_PRICE') {
       handleUpdateProductPrice(message.payload)
         .then(result => sendResponse({ success: true, data: result }))
-        .catch(error => sendResponse({ success: false, error: error.message }));
+        .catch(async (error) => {
+          // The API is unreachable; keep the prices for the next successful request
+          // instead of dropping them.
+          await enqueuePrices(message.payload);
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        });
       return true; // Keep the message channel open for async response
     }
   });
@@ -31,9 +47,20 @@ export default defineBackground(() => {
 });
 
 /**
- * Handles product price update by fetching the API from the background script
+ * Uploads a batch, then drains anything still queued. A rejected promise means
+ * nothing in `payload` was delivered.
  */
-async function handleUpdateProductPrice(payload: any): Promise<string> {
+async function handleUpdateProductPrice(payload: unknown): Promise<string> {
+  const batch = readQueue(payload);
+  if (batch.length === 0) return '';
+
+  const result = await postPrices(batch);
+  // The API answered, so this is the moment to hand over the backlog too.
+  await drainQueue();
+  return result;
+}
+
+async function postPrices(batch: QueuedPrice[]): Promise<string> {
   const apiUrl = import.meta.env.VITE_API_URL || 'https://pricehistory.id/api/v1/price';
   const jwtToken = import.meta.env.VITE_API_JWT_TOKEN;
 
@@ -50,7 +77,7 @@ async function handleUpdateProductPrice(payload: any): Promise<string> {
   const requestOptions: RequestInit = {
     method: 'POST',
     headers: headers,
-    body: JSON.stringify(payload)
+    body: JSON.stringify(batch)
   };
 
   const response = await retryWithBackoff(async () => {
@@ -62,6 +89,46 @@ async function handleUpdateProductPrice(payload: any): Promise<string> {
   });
 
   return await response.text();
+}
+
+async function enqueuePrices(payload: unknown): Promise<void> {
+  try {
+    const stored = await chrome.storage.local.get(SYNC_QUEUE_KEY);
+    await chrome.storage.local.set({
+      [SYNC_QUEUE_KEY]: mergeIntoQueue(stored[SYNC_QUEUE_KEY], payload)
+    });
+  } catch (error) {
+    // Storage is the last line of defence; a failure here is not worth
+    // breaking the response the caller is waiting on.
+    console.error('Failed to queue prices for retry:', error);
+  }
+}
+
+/**
+ * Sends queued prices oldest-first, stopping at the first request that fails so
+ * an unreachable API is not hammered, and writes back whatever is left.
+ */
+async function drainQueue(): Promise<void> {
+  const stored = await chrome.storage.local.get(SYNC_QUEUE_KEY);
+  const queue = readQueue(stored[SYNC_QUEUE_KEY]);
+  if (queue.length === 0) return;
+
+  const remaining: QueuedPrice[] = [];
+  let apiReachable = true;
+
+  for (const batch of batchForUpload(queue)) {
+    if (apiReachable) {
+      try {
+        await postPrices(batch);
+        continue;
+      } catch {
+        apiReachable = false;
+      }
+    }
+    remaining.push(...batch);
+  }
+
+  await chrome.storage.local.set({ [SYNC_QUEUE_KEY]: remaining });
 }
 
 /**

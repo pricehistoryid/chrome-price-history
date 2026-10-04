@@ -1,4 +1,5 @@
 import { classifyPage } from '../../shared/tokopedia-url';
+import { SYNC_QUEUE_KEY, pendingCount } from '../../shared/sync-queue';
 import { buildProductSummary, findProductRecord } from './product-summary';
 
 type CardState =
@@ -52,6 +53,14 @@ function renderDelta(delta: number | null) {
   el.className = `price-delta ${delta < 0 ? 'down' : 'up'}`;
 }
 
+function renderPending(count: number) {
+  const el = document.querySelector<HTMLElement>('[data-field="pending"]');
+  if (!el) return;
+
+  el.hidden = count === 0;
+  el.textContent = count === 0 ? '' : `${count} ${count === 1 ? 'price' : 'prices'} waiting to sync`;
+}
+
 export async function render(): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -62,7 +71,8 @@ export async function render(): Promise<void> {
       return;
     }
 
-    const stored = await chrome.storage.local.get(['price_history']);
+    const stored = await chrome.storage.local.get(['price_history', SYNC_QUEUE_KEY]);
+    renderPending(pendingCount(stored?.[SYNC_QUEUE_KEY]));
     const summary = buildProductSummary(findProductRecord(stored?.price_history, page.productKey));
 
     if (!summary) {

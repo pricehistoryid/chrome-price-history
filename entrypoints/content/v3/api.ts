@@ -1,19 +1,8 @@
 import { ProductData } from './scraper/result';
 import { validateProductData } from './utils/validation';
+import { batchForUpload, type QueuedPrice } from '../../../shared/sync-queue';
 
-// ponytail: server caps bulk at 100 items per POST
-const MAX_BATCH = 100;
-
-interface PricePayload {
-  url: string;
-  name: string;
-  image_url: string;
-  price: number;
-  rating: number;
-  sold: number;
-}
-
-function toPayload(productData: ProductData): PricePayload {
+function toPayload(productData: ProductData): QueuedPrice {
   const validatedProduct = validateProductData(productData);
   return {
     url: validatedProduct.url,
@@ -25,7 +14,7 @@ function toPayload(productData: ProductData): PricePayload {
   };
 }
 
-async function sendBatch(batch: PricePayload[]): Promise<void> {
+async function sendBatch(batch: QueuedPrice[]): Promise<void> {
   // Send message to background script to perform the actual fetch
   const response: { success: boolean; data?: unknown; error?: string } = await chrome.runtime.sendMessage({
     type: 'UPDATE_PRODUCT_PRICE',
@@ -45,7 +34,7 @@ async function sendBatch(batch: PricePayload[]): Promise<void> {
 export async function updateProductPrices(products: ProductData[]): Promise<void> {
   if (products.length === 0) return;
 
-  const valid: PricePayload[] = [];
+  const valid: QueuedPrice[] = [];
   for (const product of products) {
     try {
       valid.push(toPayload(product));
@@ -60,26 +49,18 @@ export async function updateProductPrices(products: ProductData[]): Promise<void
 
   if (valid.length === 0) return;
 
-  try {
-    const chunks: PricePayload[][] = [];
-    for (let i = 0; i < valid.length; i += MAX_BATCH) chunks.push(valid.slice(i, i + MAX_BATCH));
-    // ponytail: allSettled so every batch is attempted and no sibling rejection goes unhandled
-    const settled = await Promise.allSettled(chunks.map((batch) => sendBatch(batch)));
-    const rejected = settled.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
-    if (rejected) throw rejected.reason;
-    // console.log('Prices updated successfully via background script');
-  } catch (error) {
-    // Provide detailed error information
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+  // ponytail: allSettled so every batch is attempted and no sibling rejection goes unhandled
+  const settled = await Promise.allSettled(batchForUpload(valid).map((batch) => sendBatch(batch)));
+  const failed = settled.filter((result) => result.status === 'rejected');
 
-    // Log error for debugging
+  if (failed.length > 0) {
+    // The background worker has already stored every failed batch in the retry
+    // queue, and the popup reports the backlog; this is only for debugging.
     console.error('Failed to update product prices:', {
-      error: errorMessage,
+      error: failed.map((result) => (result as PromiseRejectedResult).reason?.message ?? 'Unknown error occurred'),
       itemCount: valid.length,
       timestamp: new Date().toISOString()
     });
-
-    // ponytail: silent failure to avoid user confusion in chrome://extensions
   }
 }
 
