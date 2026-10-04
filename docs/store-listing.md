@@ -17,13 +17,13 @@ Everything a Chrome Web Store (CWS) or Firefox Add-ons (AMO) submission asks for
 
 ## Short description (CWS limit: 132 characters)
 
-> Riwayat harga produk Tokopedia — harga kini, harga terendah, dan tren harga, langsung saat Anda berbelanja.
+> Riwayat harga produk Tokopedia — harga terbaru, harga terendah, dan tren harga, langsung saat Anda berbelanja.
 
 ## Detailed description (Bahasa Indonesia)
 
 **Riwayat harga di setiap halaman produk Tokopedia.**
 
-Buka halaman produk apa pun di Tokopedia dan lihat riwayat harganya: harga kini, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
+Buka halaman produk apa pun di Tokopedia dan lihat riwayat harganya: harga terbaru, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
 
 **Yang Anda dapatkan**
 

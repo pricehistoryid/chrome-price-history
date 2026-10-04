@@ -92,7 +92,7 @@ export async function render(): Promise<void> {
     setField('lowest', formatIDR(summary.lowest.price));
     setField(
       'records',
-      `${summary.recordCount} catatan · sejak ${formatDate(new Date(summary.firstSeen))}`,
+      `${summary.recordCount} riwayat harga · sejak ${formatDate(new Date(summary.firstSeen))}`,
     );
     renderDelta(summary.delta);
 
