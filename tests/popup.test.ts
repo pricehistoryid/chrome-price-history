@@ -35,16 +35,28 @@ describe('popup states', () => {
     expect(visibleState()).not.toBe('loading');
   });
 
-  it('reports a non-tokopedia tab', async () => {
+  it('reports an unsupported site', async () => {
     setActiveTab('https://example.com/');
     await render();
-    expect(visibleState()).toBe('not-tokopedia');
+    expect(visibleState()).toBe('unsupported');
   });
 
-  it('reports a tokopedia page that has no price to track', async () => {
+  it('reports a page that has no price to track', async () => {
     setActiveTab('https://www.tokopedia.com/');
     await render();
-    expect(visibleState()).toBe('tokopedia-other');
+    expect(visibleState()).toBe('other');
+  });
+
+  it('reports a shopee search page as not trackable, since only its product pages are scraped', async () => {
+    setActiveTab('https://shopee.co.id/search?keyword=monitor');
+    await render();
+    expect(visibleState()).toBe('other');
+  });
+
+  it('treats a shopee product page like any other product', async () => {
+    setActiveTab('https://shopee.co.id/Uji-Monitor-24-Inch-i.123456.987654321');
+    await render();
+    expect(visibleState()).toBe('pdp-untracked');
   });
 
   it('reports search and wishlist pages', async () => {

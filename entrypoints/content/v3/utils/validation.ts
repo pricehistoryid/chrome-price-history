@@ -1,3 +1,4 @@
+import { isSupportedHost } from '../../../../shared/page-url';
 import { ProductData } from '../scraper/result';
 
 /**
@@ -15,9 +16,8 @@ export function validateAndSanitizeUrl(url: string): string {
     if (urlObj.protocol !== 'https:') {
       throw new Error('Invalid URL: Only HTTPS URLs are allowed');
     }
-    // Only allow specific domains
-    const allowedDomains = ['tokopedia.com', 'www.tokopedia.com'];
-    if (!allowedDomains.includes(urlObj.hostname)) {
+    // Only hosts the extension has a scraper for
+    if (!isSupportedHost(urlObj.hostname)) {
       throw new Error('Invalid URL: Domain not allowed');
     }
     return urlObj.toString();

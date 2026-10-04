@@ -3,7 +3,8 @@ import { main } from './content/v3/event-listener'
 
 export default defineContentScript({
   matches: [
-    '*://*.tokopedia.com/*'
+    '*://*.tokopedia.com/*',
+    '*://*.shopee.co.id/*'
   ],
   runAt: 'document_end',
   main() {

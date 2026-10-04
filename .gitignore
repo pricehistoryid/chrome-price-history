@@ -31,3 +31,6 @@ web-ext.config.ts
 *.sw?
 
 .claude/
+
+# Local scraped pages used to derive selectors; never committed
+fixtures/

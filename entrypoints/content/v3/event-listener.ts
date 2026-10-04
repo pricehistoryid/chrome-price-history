@@ -1,5 +1,6 @@
 import { ChartManager } from './chart';
 import { scrapePDP } from './scraper/tokopedia/pdp';
+import { scrapeShopeePDP } from './scraper/shopee/pdp';
 import { PriceHistory } from './price-history';
 import { updateProductPrice, updateProductPrices } from './api';
 import { floatingButton, modal } from './inject';
@@ -7,7 +8,7 @@ import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
 import { scrapeSearch } from './scraper/tokopedia/search';
 import { ProductData } from './scraper/result';
-import { classifyPage } from '../../../shared/tokopedia-url';
+import { classifyPage } from '../../../shared/page-url';
 import { productPageUrl } from '../../../shared/pricehistory-url';
 
 declare global {
@@ -18,10 +19,10 @@ declare global {
   }
 }
 
-type tokopediaPageType = 'pdp' | 'wishlist' | 'search';
+type productPageType = 'pdp' | 'wishlist' | 'search';
 
-interface tokopediaResult {
-  pageType: tokopediaPageType | null,
+interface scrapeOutcome {
+  pageType: productPageType | null,
   result: ProductData[] | null;
 }
 
@@ -104,29 +105,30 @@ export function setupTabListeners(modal: HTMLElement) {
   });
 }
 
-async function scrapeTokopedia(url: string): Promise<tokopediaResult> {
+async function scrapePage(url: string): Promise<scrapeOutcome> {
   const page = classifyPage(url);
 
   switch (page.kind) {
     case 'pdp': {
-      const result = await scrapePDP(url);
+      const result = page.marketplace === 'shopee'
+        ? await scrapeShopeePDP(url)
+        : await scrapePDP(url);
       return {
         pageType: 'pdp',
         result: result ? [result] : null,
       };
     }
 
+    // Search and wishlist scraping is Tokopedia-only for now.
     case 'wishlist':
-      return {
-        pageType: 'wishlist',
-        result: await scrapeWishlist(),
-      };
+      return page.marketplace === 'tokopedia'
+        ? { pageType: 'wishlist', result: await scrapeWishlist() }
+        : { pageType: null, result: null };
 
     case 'search':
-      return {
-        pageType: 'search',
-        result: await scrapeSearch(url),
-      };
+      return page.marketplace === 'tokopedia'
+        ? { pageType: 'search', result: await scrapeSearch(url) }
+        : { pageType: null, result: null };
 
     default:
       return { pageType: null, result: null };
@@ -166,7 +168,7 @@ async function processScraping(
   chart: ChartManager,
   url: string
 ) {
-  const result = await scrapeTokopedia(url);
+  const result = await scrapePage(url);
 
   switch (result.pageType) {
     case 'pdp': {

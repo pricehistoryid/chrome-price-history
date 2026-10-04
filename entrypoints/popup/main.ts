@@ -1,4 +1,4 @@
-import { classifyPage } from '../../shared/tokopedia-url';
+import { classifyPage } from '../../shared/page-url';
 import { SYNC_QUEUE_KEY, pendingCount } from '../../shared/sync-queue';
 import { productPageUrl } from '../../shared/pricehistory-url';
 import { buildProductSummary, findProductRecord } from './product-summary';
@@ -9,8 +9,8 @@ type CardState =
   | 'pdp-untracked'
   | 'search'
   | 'wishlist'
-  | 'tokopedia-other'
-  | 'not-tokopedia'
+  | 'other'
+  | 'unsupported'
   | 'error';
 
 // Bound formatters: id-ID emits a non-breaking space after "Rp".
@@ -68,7 +68,11 @@ export async function render(): Promise<void> {
     const page = classifyPage(tab?.url ?? '');
 
     if (page.kind !== 'pdp') {
-      showState(page.kind);
+      // Only Tokopedia's list pages are scraped, so a Shopee search page gets
+      // the same honest "not trackable" state as a cart or category page.
+      const isScrapedList = page.kind === 'search' || page.kind === 'wishlist';
+      const state = isScrapedList && page.marketplace !== 'tokopedia' ? 'other' : page.kind;
+      showState(state);
       return;
     }
 
