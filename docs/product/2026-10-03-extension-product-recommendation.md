@@ -74,6 +74,7 @@ Ordered by leverage.
 - **Item 3** — failed uploads are queued locally and drained on the next successful request; the popup reports the backlog. The API is down, so this is currently the only thing standing between an outage and permanent data loss.
 - **Item 4** — the popup's portal button and the chart modal's footer now deep-link to the product's page in the app, which is where tracking and alerts live. With affiliate links out of scope, this clickout is the revenue path. Uses the recovered route above.
 - **Item 10** — local history is bounded: 365 points per product and 200 products, ranked by newest price date.
+- **Item 9** — the popup, the chart modal, and the extension description speak Bahasa Indonesia, dates format as `id-ID`, and the popup header shows the title its stylesheet already expected. `docs/store-listing.md` carries the listing copy, the per-permission justifications CWS asks for, the data-disclosure answers, and two 1280×800 screenshots rendered from the real build (the chart one bundles `chart.ts`, so it is the real chart, not a drawing). The README shows both instead of the stale promotion gif.
 
 **Next, in order**
 
@@ -84,8 +85,7 @@ Ordered by leverage.
 **Blocked, with reasons**
 
 - **Item 2** (per-device identity) needs the app to issue credentials. Until then every install shares one token: no per-install limits and no per-user alert data.
-- **Item 1b** (store listing and submission) is gated on the app answering; publishing a handoff funnel that 404s wastes the first review cycle.
-- **Item 9** (Bahasa Indonesia copy) is a product decision, not a build task.
+- **Item 1b** (store submission) — the pack is written and the assets exist; only the submission waits on the app answering, plus the two AMO notices (`data_collection_permissions`, `tooltip.innerHTML`). Publishing a handoff funnel that 404s wastes the first review cycle.
 
 ## 6. Success metrics for the extension
 
