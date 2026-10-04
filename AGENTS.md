@@ -42,6 +42,8 @@ Price History ID is a browser extension (Chrome & Firefox) built with the **WXT*
 | `pnpm build` | Build the extension for production (Chrome). |
 | `pnpm build:firefox` | Build the extension for production (Firefox). |
 | `pnpm zip` | Package the built extension into a ZIP file for distribution. |
+| `pnpm test` | Run the test suite. |
+| `pnpm exec tsc --noEmit` | Type-check the project (CI gates on this). |
 | `pnpm postinstall` | Run `wxt prepare` to generate types and configuration. |
 
 ---

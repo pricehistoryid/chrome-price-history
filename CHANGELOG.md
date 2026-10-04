@@ -4,13 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-04
+- Firefox builds target MV3 like Chrome, instead of silently falling back to MV2
+- Production builds no longer request host permissions for localhost
+- CI runs a type check and the test suite, and releases wait for both
 - The popup and the price chart modal link to the product's page on pricehistory.id, where tracking and alerts live
 - Local price history is capped at 365 points per product and 200 products, newest first
 - Prices that fail to upload are queued in `chrome.storage.local` and retried on the next successful upload instead of being dropped
 - The popup reports how many prices are waiting to sync
-- Corrected README claims about supported marketplaces, storage, and install paths
-- CI runs the test suite and both builds on every push
+- Corrected README claims about supported marketplaces, storage, install paths, ESLint, and Tailwind
+- Removed a dead `zip.sources` option that WXT ignores, and a redundant crosshair unsubscribe call the chart library rejects
 
 ## [1.0.0] - 2025-12-10
 - `b12f586` release: bump to version 1.0.0

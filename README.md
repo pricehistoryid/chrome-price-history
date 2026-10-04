@@ -64,7 +64,7 @@ A browser extension for tracking price history on Indonesian online marketplaces
 3. Build the extension:
    ```bash
    pnpm build          # Chrome  → .output/chrome-mv3
-   pnpm build:firefox  # Firefox → .output/firefox-mv2
+   pnpm build:firefox  # Firefox → .output/firefox-mv3
    ```
 
 4. Load in Chrome:
@@ -75,7 +75,7 @@ A browser extension for tracking price history on Indonesian online marketplaces
 5. Load in Firefox:
    - Open Firefox and navigate to `about:debugging`
    - Click "This Firefox" and then "Load Temporary Add-on"
-   - Select any file inside `.output/firefox-mv2`
+   - Select any file inside `.output/firefox-mv3`
 
 ## Development Setup
 
@@ -148,9 +148,10 @@ We welcome contributions! Please follow these guidelines:
 
 ### Code Style
 - Use TypeScript for new features
-- Follow ESLint configuration
+- Match the surrounding file's structure and naming
 - Write clear, concise comments
 - Test your changes on both Chrome and Firefox
+- Run `pnpm exec tsc --noEmit` and `pnpm exec vitest run` before pushing
 
 ### Testing
 - Test on latest Chrome and Firefox versions
@@ -168,7 +169,6 @@ We welcome contributions! Please follow these guidelines:
 - **TypeScript**: Type-safe JavaScript
 - **Vite**: Fast build tooling
 - **Lightweight Charts**: TradingView charting library
-- **Tailwind CSS**: Utility-first CSS framework
 
 ## License
 
