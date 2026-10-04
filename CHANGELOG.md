@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+- The popup and the chart modal are in Bahasa Indonesia, including the manifest description and the `id-ID` date format
+- The popup header shows "Riwayat Harga" next to the icon, which was previously unlabelled and invisible against the gradient
+- Store listing pack added: copy, permission justifications, data disclosure answers, and two 1280×800 screenshots
+
 ## [1.1.0] - 2026-10-04
 - Firefox builds target MV3 like Chrome, instead of silently falling back to MV2
 - Production builds no longer request host permissions for localhost
