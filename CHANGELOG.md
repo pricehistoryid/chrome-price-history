@@ -4,18 +4,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased]
-- Selecting a different variant now updates the chart: the price is read from the page's `aria-live` region (JSON-LD only ever carries the item's range), and a price change that comes with no navigation re-runs the scraper
-- A price change within the same day replaces that day's point instead of keeping only the day's lowest, so a switch to a pricier variant is recorded
-- Client-side navigation on Shopee re-runs the scraper instead of leaving the first product's chart on screen: the URL watcher was a hardcoded Tokopedia pattern
-- Shopee product pages are recorded: name, image, rating and price come from the JSON-LD Shopee publishes in the page, and the sold count from its `Terjual` label
-- Products with variants record the low end of the price range, which is the figure the listing advertises
-- The page classifier covers both marketplaces, and the upload path's host allowlist moved into it — it would otherwise have rejected every Shopee product silently
-- The popup's page states are no longer Tokopedia-specific, and a Shopee search page honestly reports itself as not trackable
-- The popup and the chart modal are in Bahasa Indonesia, including the manifest description and the `id-ID` date format
-- The popup header shows "Riwayat Harga" next to the icon, which was previously unlabelled and invisible against the gradient
-- Store listing pack added: copy, permission justifications, data disclosure answers, and two 1280×800 screenshots
-
 ## [1.1.0] - 2026-10-04
 - Firefox builds target MV3 like Chrome, instead of silently falling back to MV2
 - Production builds no longer request host permissions for localhost
@@ -26,6 +14,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - The popup reports how many prices are waiting to sync
 - Corrected README claims about supported marketplaces, storage, install paths, ESLint, and Tailwind
 - Removed a dead `zip.sources` option that WXT ignores, and a redundant crosshair unsubscribe call the chart library rejects
+- Selecting a different variant now updates the chart: the price is read from the page's `aria-live` region (JSON-LD only ever carries the item's range), and a price change that comes with no navigation re-runs the scraper
+- A price change within the same day replaces that day's point instead of keeping only the day's lowest, so a switch to a pricier variant is recorded
+- Client-side navigation on Shopee re-runs the scraper instead of leaving the first product's chart on screen: the URL watcher was a hardcoded Tokopedia pattern
+- Shopee product pages are recorded: name, image, rating and price come from the JSON-LD Shopee publishes in the page, and the sold count from its `Terjual` label
+- Products with variants record the low end of the price range, which is the figure the listing advertises
+- The page classifier covers both marketplaces, and the upload path's host allowlist moved into it — it would otherwise have rejected every Shopee product silently
+- The popup's page states are no longer Tokopedia-specific, and a Shopee search page honestly reports itself as not trackable
+- The popup and the chart modal are in Bahasa Indonesia, including the manifest description and the `id-ID` date format
+- The popup header shows "Riwayat Harga" next to the icon, which was previously unlabelled and invisible against the gradient
+- Store listing pack added: copy, permission justifications, data disclosure answers, and two 1280×800 screenshots
 
 ## [1.0.0] - 2025-12-10
 - `f3c8c1c` release: bump to version 1.0.0
