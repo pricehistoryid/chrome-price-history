@@ -87,6 +87,67 @@ describe('classifyPage — shopee', () => {
   });
 });
 
+describe('classifyPage — blibli', () => {
+  it('keys a product page by origin and path, dropping the query string', () => {
+    expect(
+      classifyPage('https://www.blibli.com/p/uji-produk-30-sachet/ps--UJI-1-0?ds=abc'),
+    ).toEqual({
+      kind: 'pdp',
+      marketplace: 'blibli',
+      productKey: 'https://www.blibli.com/p/uji-produk-30-sachet/ps--UJI-1-0',
+    });
+  });
+
+  it('recognizes the variant-shape path too', () => {
+    expect(classifyPage('https://www.blibli.com/p/uji-produk/ps--UJI-1/ps--UJI-1-0')).toMatchObject({
+      kind: 'pdp',
+      marketplace: 'blibli',
+    });
+  });
+
+  it('reports a non-product page as other', () => {
+    expect(classifyPage('https://www.blibli.com/')).toEqual({ kind: 'other', marketplace: 'blibli' });
+  });
+});
+
+describe('classifyPage — lazada', () => {
+  const canonical = 'https://www.lazada.co.id/products/uji-hp-12-256-gb-i6842036581.html';
+
+  it('reduces the browsed url and the canonical url to one key', () => {
+    // Verified against a captured page: the browsed URL carries the sku, the
+    // page's own og:url does not.
+    expect(classifyPage('https://www.lazada.co.id/products/uji-hp-12-256-gb-i6842036581-s16185278365.html')).toEqual({
+      kind: 'pdp',
+      marketplace: 'lazada',
+      productKey: canonical,
+    });
+
+    expect(classifyPage(canonical)).toEqual({ kind: 'pdp', marketplace: 'lazada', productKey: canonical });
+  });
+
+  it('keeps the query string out of the key', () => {
+    expect(classifyPage(`${canonical}?spm=a2o7l.home`)).toEqual({
+      kind: 'pdp',
+      marketplace: 'lazada',
+      productKey: canonical,
+    });
+  });
+
+  it('reports a catalogue page as other', () => {
+    expect(classifyPage('https://www.lazada.co.id/catalog/?q=hp')).toEqual({
+      kind: 'other',
+      marketplace: 'lazada',
+    });
+  });
+
+  it('rejects a lookalike host', () => {
+    expect(classifyPage('https://lazada.co.id.evil.com/products/x-i1-s2.html')).toEqual({
+      kind: 'unsupported',
+      marketplace: null,
+    });
+  });
+});
+
 describe('classifyPage — unusable input', () => {
   it('returns unsupported instead of throwing', () => {
     expect(classifyPage('not a url')).toEqual({ kind: 'unsupported', marketplace: null });

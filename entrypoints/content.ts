@@ -4,7 +4,9 @@ import { main } from './content/v3/event-listener'
 export default defineContentScript({
   matches: [
     '*://*.tokopedia.com/*',
-    '*://*.shopee.co.id/*'
+    '*://*.shopee.co.id/*',
+    '*://*.blibli.com/*',
+    '*://*.lazada.co.id/*'
   ],
   runAt: 'document_end',
   main() {

@@ -19,6 +19,8 @@ export default defineConfig({
       host_permissions: [
         '*://*.tokopedia.com/*',
         '*://*.shopee.co.id/*',
+        '*://*.blibli.com/*',
+        '*://*.lazada.co.id/*',
         'https://pricehistory.id/*',
         ...(isDev ? DEV_ORIGINS : []),
       ],
@@ -38,7 +40,12 @@ export default defineConfig({
       web_accessible_resources: [
         {
           resources: ['icon/*'],
-          matches: ['*://*.tokopedia.com/*', '*://*.shopee.co.id/*']
+          matches: [
+            '*://*.tokopedia.com/*',
+            '*://*.shopee.co.id/*',
+            '*://*.blibli.com/*',
+            '*://*.lazada.co.id/*'
+          ]
         }
       ],
       // Firefox MV3 refuses to install without a stable extension ID. Confirm

@@ -1,68 +1,42 @@
 import { ProductData } from '../result';
+import { Json, amountsIn, jsonLdNodes, metaContent, waitFor, watchText } from '../page-data';
 
 /**
  * Shopee ships the product as JSON-LD in the server HTML, which is a far
  * steadier target than its content-hashed class names (`Ocv3B8`, `PfWbfd`).
- * Anchors verified against a captured product page — the shape, not the
+ * Anchors verified against two captured product pages — the shape, not the
  * values, is what tests pin. See
  * docs/superpowers/specs/2026-10-05-shopee-pdp-scraper-design.md
  *
- * The JSON-LD lives in <head> and is part of the initial response, so this
- * reads it without waiting: a MutationObserver on document.body would never
- * observe a head script appearing anyway.
+ * The JSON-LD lives in <head> and can arrive after the initial HTML (the page's
+ * `og:` tags carry react-helmet's `data-rh` marker), so the product block is
+ * polled for rather than read once. The *price* never comes from it: JSON-LD
+ * carries the item's range and does not move when a variant is selected.
  */
 
-const LD_JSON_SELECTOR = 'script[type="application/ld+json"]';
 const TITLE_SUFFIX = /\s*\|\s*Shopee Indonesia\s*$/i;
 
-/**
- * The page is a React app and its `og:` tags carry react-helmet's `data-rh`
- * marker, so the structured data can arrive after the initial HTML. The
- * content script runs at document_end, which is why this waits instead of
- * reading once.
- */
 const LD_TIMEOUT_MS = 6000;
-const LD_POLL_MS = 150;
 
 /** `189 Terjual`, and Shopee's abbreviated `1,2RB Terjual` above a thousand. */
 const SOLD_LABEL = /([\d.,]+)\s*(rb|ribu)?\s*terjual/i;
 
-/**
- * The product page keeps its price — or its price *range* — inside a single
- * `aria-live` region, and selecting a variant rewrites that text without
- * changing the URL. Both captured pages have exactly one such region. The
- * class names inside it are content-hashed, so the region is the anchor.
- */
+/** The price region, one per page in both captures, and its own text shape. */
 const PRICE_SECTION = 'section[aria-live="polite"]';
 const PRICE_TEXT = /^Rp\s?[\d.]+(?:\s*-\s*Rp\s?[\d.]+)?$/;
 const PRICE_DEBOUNCE_MS = 150;
 
-type Json = Record<string, any>;
-
-function ldJsonProducts(): Json[] {
-  const products: Json[] = [];
-
-  for (const script of document.querySelectorAll<HTMLScriptElement>(LD_JSON_SELECTOR)) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(script.textContent ?? '');
-    } catch {
-      continue; // a malformed block must not stop the others
-    }
-
-    for (const node of Array.isArray(parsed) ? parsed : [parsed]) {
-      if (node && typeof node === 'object' && (node as Json)['@type'] === 'Product') {
-        products.push(node as Json);
-      }
-    }
-  }
-
-  return products;
+/** The JSON-LD product block, preferring one that names the product. */
+function productBlock(): Json | null {
+  const blocks = jsonLdNodes('Product');
+  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
+    ?? blocks[0]
+    ?? null;
 }
 
 /**
  * `offers` is an AggregateOffer for products with variants (a price range) and
- * a plain Offer otherwise. The low end is what the listing advertises.
+ * a plain Offer otherwise. Only used as a fallback.
  */
 function offersPrice(offers: unknown): number | null {
   for (const offer of Array.isArray(offers) ? offers : [offers]) {
@@ -74,9 +48,25 @@ function offersPrice(offers: unknown): number | null {
   return null;
 }
 
-function metaContent(property: string): string {
-  const el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
-  return el?.content?.trim() ?? '';
+/** The element whose whole text is a price or a price range, or ''. */
+function priceTextIn(root: ParentNode): string {
+  for (const el of root.querySelectorAll('div, span')) {
+    const text = (el.textContent ?? '').trim();
+    if (PRICE_TEXT.test(text)) return text;
+  }
+  return '';
+}
+
+/**
+ * The price the buyer is looking at, which is the selected variant's — the low
+ * end when the page still shows a range because nothing is selected.
+ */
+function visiblePrice(): number | null {
+  const section = document.querySelector(PRICE_SECTION);
+  if (!section) return null;
+
+  const figures = amountsIn(priceTextIn(section));
+  return figures.length > 0 ? Math.min(...figures) : null;
 }
 
 function soldFromDom(): number | null {
@@ -95,97 +85,15 @@ function soldFromDom(): number | null {
   return null;
 }
 
-/** The JSON-LD product block, preferring one that names the product. */
-function productBlock(): Json | null {
-  const blocks = ldJsonProducts();
-  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
-    ?? blocks[0]
-    ?? null;
-}
-
 /**
- * Polls until the product block shows up, so a client-rendered page is not
- * mistaken for an unsupported one. The price is read separately, because a
- * variant selection only ever moves the visible figure.
- */
-function waitForProduct(timeoutMs: number): Promise<Json | null> {
-  const immediate = productBlock();
-  if (immediate) return Promise.resolve(immediate);
-
-  return new Promise((resolve) => {
-    const deadline = Date.now() + timeoutMs;
-    const timer = setInterval(() => {
-      const found = productBlock();
-      if (found || Date.now() >= deadline) {
-        clearInterval(timer);
-        resolve(found);
-      }
-    }, LD_POLL_MS);
-  });
-}
-
-function priceSection(): Element | null {
-  return document.querySelector(PRICE_SECTION);
-}
-
-/** The element whose whole text is a price or a price range, or ''. */
-function priceTextIn(root: ParentNode): string {
-  for (const el of root.querySelectorAll('div, span')) {
-    const text = (el.textContent ?? '').trim();
-    if (PRICE_TEXT.test(text)) return text;
-  }
-  return '';
-}
-
-function rupiahFigures(text: string): number[] {
-  return (text.match(/[\d.]+/g) ?? [])
-    .map((digits) => Number(digits.replace(/\./g, '')))
-    .filter((value) => Number.isFinite(value) && value > 0);
-}
-
-/**
- * The price the buyer is looking at, which is the selected variant's — the low
- * end when the page still shows a range because nothing is selected. JSON-LD
- * cannot answer this: it stays at the aggregate range for the whole item.
- */
-function visiblePrice(): number | null {
-  const section = priceSection();
-  if (!section) return null;
-
-  const figures = rupiahFigures(priceTextIn(section));
-  return figures.length > 0 ? Math.min(...figures) : null;
-}
-
-/**
- * Calls `onChange` when the price the user is looking at changes — selecting a
+ * Calls `onChange` when the price the user is looking at changes. Selecting a
  * variant does that without a navigation, so no URL watcher can see it.
- * Returns a disposer; call it before arming another one.
  */
 export function watchShopeePrice(
   onChange: () => void,
   { debounceMs = PRICE_DEBOUNCE_MS }: { debounceMs?: number } = {},
 ): () => void {
-  const section = priceSection();
-  if (!section) return () => {};
-
-  let lastText = priceTextIn(section);
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  const observer = new MutationObserver(() => {
-    const text = priceTextIn(section);
-    if (text === lastText) return;
-
-    lastText = text;
-    clearTimeout(timer);
-    timer = setTimeout(onChange, debounceMs);
-  });
-
-  observer.observe(section, { childList: true, subtree: true, characterData: true });
-
-  return () => {
-    clearTimeout(timer);
-    observer.disconnect();
-  };
+  return watchText(PRICE_SECTION, priceTextIn, onChange, { debounceMs });
 }
 
 export async function scrapeShopeePDP(
@@ -193,10 +101,10 @@ export async function scrapeShopeePDP(
   { timeoutMs = LD_TIMEOUT_MS }: { timeoutMs?: number } = {},
 ): Promise<ProductData | null> {
   try {
-    const product = await waitForProduct(timeoutMs);
+    const product = await waitFor(productBlock, timeoutMs);
     if (!product) {
       console.warn(
-        ldJsonProducts().length > 0
+        jsonLdNodes('Product').length > 0
           ? 'Shopee JSON-LD carried no product name, scraping failed'
           : 'Shopee product JSON-LD never appeared, scraping failed',
       );

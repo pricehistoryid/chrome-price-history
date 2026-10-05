@@ -1,6 +1,8 @@
 import { ChartManager } from './chart';
 import { scrapePDP } from './scraper/tokopedia/pdp';
 import { scrapeShopeePDP, watchShopeePrice } from './scraper/shopee/pdp';
+import { scrapeBlibliPDP, watchBlibliPrice } from './scraper/blibli/pdp';
+import { scrapeLazadaPDP, watchLazadaPrice } from './scraper/lazada/pdp';
 import { PriceHistory } from './price-history';
 import { updateProductPrice, updateProductPrices } from './api';
 import { floatingButton, modal } from './inject';
@@ -8,7 +10,7 @@ import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
 import { scrapeSearch } from './scraper/tokopedia/search';
 import { ProductData } from './scraper/result';
-import { classifyPage } from '../../../shared/page-url';
+import { classifyPage, type Marketplace } from '../../../shared/page-url';
 import { productPageUrl } from '../../../shared/pricehistory-url';
 
 declare global {
@@ -23,8 +25,24 @@ type productPageType = 'pdp' | 'wishlist' | 'search';
 
 interface scrapeOutcome {
   pageType: productPageType | null,
+  marketplace: Marketplace | null,
   result: ProductData[] | null;
 }
+
+/** One scraper per marketplace. Tokopedia's is also the only list scraper. */
+const PDP_SCRAPERS: Record<Marketplace, (url: string) => Promise<ProductData | null>> = {
+  tokopedia: scrapePDP,
+  shopee: scrapeShopeePDP,
+  blibli: scrapeBlibliPDP,
+  lazada: scrapeLazadaPDP,
+};
+
+/** Only the marketplaces whose price moves without a navigation need watching. */
+const PRICE_WATCHERS: Partial<Record<Marketplace, (onChange: () => void) => () => void>> = {
+  shopee: watchShopeePrice,
+  blibli: watchBlibliPrice,
+  lazada: watchLazadaPrice,
+};
 
 // Chart instance created outside
 const chart = new ChartManager('chart-container');
@@ -107,14 +125,14 @@ export function setupTabListeners(modal: HTMLElement) {
 
 async function scrapePage(url: string): Promise<scrapeOutcome> {
   const page = classifyPage(url);
+  const marketplace = page.marketplace;
 
   switch (page.kind) {
     case 'pdp': {
-      const result = page.marketplace === 'shopee'
-        ? await scrapeShopeePDP(url)
-        : await scrapePDP(url);
+      const result = await PDP_SCRAPERS[page.marketplace](url);
       return {
         pageType: 'pdp',
+        marketplace,
         result: result ? [result] : null,
       };
     }
@@ -122,16 +140,16 @@ async function scrapePage(url: string): Promise<scrapeOutcome> {
     // Search and wishlist scraping is Tokopedia-only for now.
     case 'wishlist':
       return page.marketplace === 'tokopedia'
-        ? { pageType: 'wishlist', result: await scrapeWishlist() }
-        : { pageType: null, result: null };
+        ? { pageType: 'wishlist', marketplace, result: await scrapeWishlist() }
+        : { pageType: null, marketplace, result: null };
 
     case 'search':
       return page.marketplace === 'tokopedia'
-        ? { pageType: 'search', result: await scrapeSearch(url) }
-        : { pageType: null, result: null };
+        ? { pageType: 'search', marketplace, result: await scrapeSearch(url) }
+        : { pageType: null, marketplace, result: null };
 
     default:
-      return { pageType: null, result: null };
+      return { pageType: null, marketplace, result: null };
   }
 }
 
@@ -192,8 +210,9 @@ async function processScraping(
       });
       void updateProductPrice(result.result[0]);
 
-      if (classifyPage(url).marketplace === 'shopee') {
-        priceWatcher = watchShopeePrice(() => {
+      const watch = result.marketplace ? PRICE_WATCHERS[result.marketplace] : undefined;
+      if (watch) {
+        priceWatcher = watch(() => {
           void processScraping(ph, chart, `${location.origin}${location.pathname}`);
         });
       }
