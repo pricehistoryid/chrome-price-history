@@ -89,4 +89,14 @@ export default defineConfig({
       minify: 'terser'
     }
   }),
+  dev: {
+    server: {
+      // The dashboard owns 3000 and its API owns 3001. Left alone, WXT takes
+      // the first free port from 3000, landed on 3001, and — bound to
+      // localhost, which macOS resolves to ::1 first — shadowed the API for
+      // every localhost client: uploads 404'd, and the dashboard's own API
+      // calls would have too.
+      port: 3010,
+    },
+  },
 });

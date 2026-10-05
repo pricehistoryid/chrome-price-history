@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Development targets the local API directly (`http://localhost:3001/api/v1/price`) instead of the dashboard's Vite proxy on 3000
+- WXT's dev server is pinned to port 3010. It took the first free port from 3000, landed on the API's 3001, and — bound to localhost, which macOS resolves to `::1` first — shadowed the API for every localhost client
 - Development builds allow any localhost port for the dev-server websocket and the local dashboard; WXT picks a free port from 3000 to 3010 and a hardcoded `ws://localhost:3000` blocked its HMR socket whenever the dashboard already held that port
 - The retry queue holds 5,000 observations instead of 500, so an API outage no longer evicts a browsing session's worth of prices before they can be delivered
 - Firefox builds declare their data collection to AMO (`websiteActivity`, `websiteContent`) and the chart tooltip builds its text as elements instead of assigning `innerHTML`; addons-linter reports zero errors, warnings and notices

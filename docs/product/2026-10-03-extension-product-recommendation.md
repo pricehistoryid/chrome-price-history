@@ -47,7 +47,7 @@ Ordered by leverage.
 | 8 | **Telemetry** — install, scrape success per marketplace, chart open, clickout, consent-gated | The roadmap's own success criteria are unverifiable today | S | App endpoint |
 | 9 | **Consent screen and Bahasa Indonesia copy** | Trust, and market fit for an Indonesian audience | S | — |
 | 10 | **Storage policy** — cap or roll up `prevPrice` | Unbounded growth will hit quota; the roadmap's "10 records" cap was never implemented | S | — |
-| 11 | **History read path** — fetch the app's price history for the product being viewed and render it | The chart is local-only, so a fresh install shows a single point on the product and the dataset the app already holds never reaches the user. This is the difference between "a chart of your own visits" and "the price history you installed it for" | M | App must expose a read endpoint (handoff §6a) |
+| 11 | **History read path** — fetch the app's price history for the product being viewed and render it | The chart is local-only, so a fresh install shows a single point on the product and the dataset the app already holds never reaches the user. This is the difference between "a chart of your own visits" and "the price history you installed it for" | M | **Unblocked**: the app already serves `GET /api/v1/products/:slug/history` without a session (handoff §6a). What is left is the extension's client and one app decision: does a signed-out caller receive everyone's observations, or only its own? |
 
 ### App owns (do not build in the extension)
 
@@ -65,7 +65,9 @@ Ordered by leverage.
 - **`https://pricehistory.id/` returns HTTP 404** (Zoraxy "target host not found"), and so does `POST /api/v1/price`. Every price the extension has collected recently has been dropped silently. This makes item 3 the only piece of the backlog that is fixing active data loss.
 - **The app's product route was recovered from its own sitemap.** Archived captures of `pricehistory.id/sitemap.xml` list product URLs, and captures of those pages returned HTTP 200 (last seen January 2025). The shape is `https://pricehistory.id/product/<product-url-without-scheme, dots and slashes as dashes>`, which is what item 4 now builds. Caveat: the newest capture is 21 months old and the live app is down, so the route is unverified against today's deployment — worth one click before shipping.
 - **Item 2 still cannot be built.** Per-device identity needs credentials only the app can issue, and the app is offline.
-- **The shared token ships in the release artifact** — demonstrated, not theorised: the token was extracted from `pricehistory.id`'s own published 1.1.0 zip during this session, by reading the string out of the bundled `background.js`. It is inlined at build time, so it cannot identify a user or a device, and any downloader can use it.
+- **The app is further along than assumed.** `frontend-web` (bun + React + Vite) is the dashboard and `frontend-web/apps/api` is a Hono API that already implements the ingest route, product slugging, `checkPriceAlerts`, a history read at `GET /api/v1/products/:slug/history`, plus `/price-drops` and `/all-time-low`. That removes the "the app has to build it" framing from items 11 and, for the alert side, confirms the 2026-10-04 decision to keep alerts out of the extension.
+- **The ingest credential is a shared string, not a session.** `internalAuthMiddleware` compares the bearer token to `INTERNAL_API_KEY` with `!==`. The value in the app's dev env is the public jwt.io demo token (`sub: pricehistory`, `iat: 1516239022`); if that value ever reaches production, anyone who reads these notes can ingest data. Worth an explicit check.
+- **That credential ships in the extension** — shown, not assumed: it was extracted from the project's own published 1.1.0 zip during this session by reading the string out of the bundled `background.js`. Any downloader can do the same, which is why it cannot serve as a per-user identity (item 2).
 
 ## 5. Where the work stands
 
@@ -87,7 +89,7 @@ Ordered by leverage.
 
 **Next, in order**
 
-- **Item 11 (history read path)** — first, because it decides whether a new install is worth keeping: the chart is local-only today, so a fresh user sees one point and the app's history never reaches them. It is also the cheapest thing on this list *for the app* — one endpoint (handoff §6a).
+- **Item 11 (history read path)** — first, because it decides whether a new install is worth keeping: the chart is local-only today, so a fresh user sees one point and the app's history never reaches them. The endpoint already exists (`GET /api/v1/products/:slug/history`, no session required), so this is extension work plus one app decision about what a signed-out caller may see.
 - **Item 6 (rest)** — search and wishlist pages for Shopee, Blibli, and Lazada. Each wants the captured-page-fixture treatment the product pages got; selectors derived from a real saved page, never guessed.
 - **Item 5** (local half only) — the popup shows what the extension has stored. The search-card chips still need the app to serve prices.
 - **Item 8** — telemetry, narrowed: installs, scrape success per marketplace, chart open. Clickouts are the app's to count.

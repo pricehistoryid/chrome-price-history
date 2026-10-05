@@ -93,19 +93,20 @@ A browser extension for tracking price history on Indonesian online marketplaces
    pnpm install
    ```
 
-2. Point the extension at your local dashboard. The API URL comes from the build
-   mode, so nothing needs editing:
-   - `pnpm dev` reads `.env.development` → `http://localhost:3000/api/v1/price`
+2. Point the extension at your local API. The URL comes from the build mode, so
+   nothing needs editing:
+   - `pnpm dev` reads `.env.development` → `http://localhost:3001/api/v1/price`
    - `pnpm build` reads `.env.production` → `https://pricehistory.id/api/v1/price`
 
-   The local origin must also be allowed by the development manifest, which
-   `wxt.config.ts` handles (`DEV_ORIGINS`). Serving the dashboard on another host
-   or port? Put the URL in `.env.development.local` — the highest-precedence env
-   file — and add that origin there too. See `.env.example`.
+   Port layout: the dashboard runs on **3000** (its Vite proxy forwards `/api` to
+   **3001**, where the API lives) and WXT's dev server is pinned to **3010** so it
+   cannot take a port the app is using. The extension calls the API directly
+   rather than through the dashboard's proxy.
 
-   Put your JWT in `.env` (untracked). There is deliberately no fallback for the
-   URL: if it is missing, uploads fail and the batches stay in the local retry
-   queue rather than reaching production by accident.
+   Credentials differ per environment: the local API authenticates ingest with
+   the app's `INTERNAL_API_KEY` as a Bearer token, not a user session. Put it in
+   `.env.development.local` (git-ignored) as `VITE_API_JWT_TOKEN`, and keep the
+   production credential in `.env`. Anything else is a 401 locally.
 
 3. Development server:
    ```bash
