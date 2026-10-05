@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Client-side navigation on Shopee re-runs the scraper instead of leaving the first product's chart on screen: the URL watcher was a hardcoded Tokopedia pattern
 - Shopee product pages are recorded: name, image, rating and price come from the JSON-LD Shopee publishes in the page, and the sold count from its `Terjual` label
 - Products with variants record the low end of the price range, which is the figure the listing advertises
 - The page classifier covers both marketplaces, and the upload path's host allowlist moved into it — it would otherwise have rejected every Shopee product silently

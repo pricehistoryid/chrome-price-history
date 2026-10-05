@@ -9,6 +9,8 @@ type MessageListener = (
 
 interface WorkerHarness {
   send: (payload: unknown) => Promise<any>;
+  navigate: (url?: string) => void;
+  sentMessages: () => unknown[][];
   postedBodies: () => Array<Array<{ url: string }>>;
   storedQueue: () => unknown;
 }
@@ -28,7 +30,9 @@ async function loadWorker(
   vi.resetModules();
 
   let listener: MessageListener | undefined;
+  const tabListeners: Array<(tabId: number, changeInfo: { url?: string }, tab: unknown) => void> = [];
   let queue = queueOnDisk;
+  const sendMessageMock = vi.fn(async () => undefined);
 
   (global as any).defineBackground = (fn: () => void) => fn();
   (global as any).chrome = {
@@ -40,8 +44,12 @@ async function loadWorker(
       },
     },
     tabs: {
-      onUpdated: { addListener: vi.fn() },
-      sendMessage: vi.fn(),
+      onUpdated: {
+        addListener: (fn: (tabId: number, changeInfo: { url?: string }, tab: unknown) => void) => {
+          tabListeners.push(fn);
+        },
+      },
+      sendMessage: sendMessageMock,
     },
     storage: {
       local: {
@@ -70,6 +78,10 @@ async function loadWorker(
         listener?.({ type: 'UPDATE_PRODUCT_PRICE', payload }, {}, resolve);
         void vi.advanceTimersByTimeAsync(60_000);
       }),
+    navigate: (url?: string) => {
+      for (const fn of tabListeners) fn(7, { url }, {});
+    },
+    sentMessages: () => sendMessageMock.mock.calls as unknown[][],
     postedBodies: () =>
       fetchMock.mock.calls.map((call) => JSON.parse(String((call[1] as RequestInit).body))),
     storedQueue: () => queue,
@@ -86,6 +98,30 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+});
+
+describe('background navigation notifications', () => {
+  it('tells the content script to re-scrape on both marketplaces', async () => {
+    const worker = await loadWorker(async () => undefined);
+
+    worker.navigate('https://shopee.co.id/Uji-Monitor-i.1.2');
+    worker.navigate('https://www.tokopedia.com/shop-a/sepatu-abc123');
+
+    expect(worker.sentMessages()).toEqual([
+      [7, { type: 'urlChanged' }],
+      [7, { type: 'urlChanged' }],
+    ]);
+  });
+
+  it('stays quiet for unsupported sites and for a missing url', async () => {
+    const worker = await loadWorker(async () => undefined);
+
+    worker.navigate('https://example.com/shop-a/sepatu-abc123');
+    worker.navigate('https://tokopedia.com.evil.com/x-y1');
+    worker.navigate();
+
+    expect(worker.sentMessages()).toEqual([]);
+  });
 });
 
 describe('background price upload', () => {

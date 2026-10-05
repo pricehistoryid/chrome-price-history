@@ -1,3 +1,4 @@
+import { classifyPage } from '../shared/page-url';
 import {
   SYNC_QUEUE_KEY,
   batchForUpload,
@@ -28,20 +29,15 @@ export default defineBackground(() => {
   chrome.tabs.onUpdated.addListener(
     (tabId: number, changeInfo: chrome.tabs.TabChangeInfo, _tab: chrome.tabs.Tab) => {
       const url = changeInfo.url;
+      if (!url) return;
 
-      if (
-        url &&
-        /^https:\/\/.*\.tokopedia\.com\/.+/.test(url)
-      ) {
-        const cleanedUrl = url.replace(/^https?:\/\//, '');
+      // Was a hardcoded Tokopedia pattern, which meant client-side navigation
+      // on any other marketplace never re-ran the scraper.
+      if (classifyPage(url).kind === 'unsupported') return;
 
-        chrome.tabs.sendMessage(tabId, {
-          type: 'urlChanged',
-          url: cleanedUrl
-        }).catch(err => {
-          console.warn('No receiver for message:', err);
-        });
-      }
+      chrome.tabs.sendMessage(tabId, { type: 'urlChanged' }).catch(err => {
+        console.warn('No receiver for message:', err);
+      });
     }
   );
 });
