@@ -12,11 +12,14 @@ export const SYNC_QUEUE_KEY = 'sync_queue';
 export const PRICE_BATCH_LIMIT = 100;
 
 /**
- * ponytail: flat FIFO keyed by product URL, capped at 500 entries (~100 KB,
- * comfortably inside the 10 MB storage quota). Evicting the oldest is the
- * right loss order; revisit if backlogs ever approach the cap.
+ * ponytail: flat FIFO keyed by product URL, capped at 5000 entries (~1.2 KB
+ * each worst case, so ~1 MB against a 10 MB storage quota). The cap is what
+ * bounds an outage: search and wishlist pages enqueue up to 100 observations
+ * per flush, so 500 was roughly one browsing session and the oldest were
+ * evicted before the API came back. Evicting the oldest is the right loss
+ * order; revisit if backlogs ever approach this cap.
  */
-export const SYNC_QUEUE_MAX = 500;
+export const SYNC_QUEUE_MAX = 5000;
 
 export interface QueuedPrice {
   url: string;
