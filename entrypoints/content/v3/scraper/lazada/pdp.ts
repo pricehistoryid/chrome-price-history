@@ -1,5 +1,5 @@
 import { ProductData } from '../result';
-import { Json, amountFrom, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
+import { Json, amountFrom, httpsUrl, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
 
 /**
  * Lazada's JSON-LD carries identity only — its `offers` has a url, seller and
@@ -14,12 +14,27 @@ const PRICE_ROOT = '.pdp-v2-product-price-content';
 const PRICE_DEBOUNCE_MS = 150;
 
 /**
- * Lazada's product photos live under `/kf/`, on either the file broker or the
- * image CDN; the store badges and other site art the page carries do not. Only
- * that path is accepted, since a badge stored as a product image is worse than
- * none.
+ * Lazada's product photos arrive in two shapes depending on the item:
+ * `laz-img-sg.alicdn.com/p/<hash>.jpg` (as protocol-relative URLs, twice seen)
+ * and `filebroker-cdn.lazada.co.id/kf/<hash>.jpg`, with the `img.lazcdn.com`
+ * CDN serving either under `/g/p/` or `/g/ff/kf/`. Its store badges and other
+ * site art live under `/tps/`. Anything else is skipped, since a badge stored as
+ * a product image is worse than none.
  */
-const PRODUCT_IMAGE = /\/kf\//;
+const PRODUCT_IMAGE_HOSTS = ['laz-img-sg.alicdn.com', 'filebroker-cdn.lazada.co.id', 'img.lazcdn.com'];
+const PRODUCT_IMAGE_PATH = /\/(p|kf)\//;
+
+function isProductImage(url: string): boolean {
+  if (!url.includes('/tps/')) {
+    try {
+      const { hostname, pathname } = new URL(url);
+      return PRODUCT_IMAGE_HOSTS.includes(hostname) && PRODUCT_IMAGE_PATH.test(pathname);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
 
 /** The best product image the page offers, or '' rather than site art. */
 function productImageUrl(): string {
@@ -28,8 +43,9 @@ function productImageUrl(): string {
   const fromLd = jsonLdNodes('Product')
     .flatMap((block) => (Array.isArray(block.image) ? block.image : [block.image]));
 
-  for (const candidate of [...fromLd, metaContent('og:image')]) {
-    if (typeof candidate === 'string' && PRODUCT_IMAGE.test(candidate)) return candidate;
+  for (const candidate of [...fromLd, metaContent('og:image'), metaContent('twitter:image')]) {
+    const url = httpsUrl(candidate);
+    if (url && isProductImage(url)) return url;
   }
   return '';
 }

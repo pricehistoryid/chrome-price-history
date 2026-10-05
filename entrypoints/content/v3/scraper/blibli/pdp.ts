@@ -1,5 +1,5 @@
 import { ProductData } from '../result';
-import { Json, amountFrom, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
+import { Json, amountFrom, httpsUrl, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
 
 /**
  * Blibli publishes JSON-LD, but its `offers` is the *promo* range: a captured
@@ -35,9 +35,10 @@ function productImageUrl(): string {
     .flatMap((block) => (Array.isArray(block.image) ? block.image : [block.image]));
 
   for (const candidate of [...declared, ...fromLd]) {
-    if (typeof candidate !== 'string' || !candidate.includes(CATALOG_IMAGE)) continue;
+    const url = httpsUrl(candidate);
+    if (!url.includes(CATALOG_IMAGE)) continue;
     // JSON-LD carries the thumbnail variant of the same file.
-    return candidate.replace('/thumbnail/', '/full/');
+    return url.replace('/thumbnail/', '/full/');
   }
   return '';
 }

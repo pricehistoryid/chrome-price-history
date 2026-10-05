@@ -58,6 +58,21 @@ export function amountFrom(text: string): number | null {
   return amountsIn(text)[0] ?? null;
 }
 
+/**
+ * An absolute https URL, or ''. Embedded JSON uses protocol-relative URLs
+ * (`//host/path`) often enough that they must be resolved rather than dropped.
+ */
+export function httpsUrl(raw: unknown): string {
+  if (typeof raw !== 'string' || raw === '') return '';
+  const candidate = raw.startsWith('//') ? `https:${raw}` : raw;
+
+  try {
+    return new URL(candidate).protocol === 'https:' ? candidate : '';
+  } catch {
+    return '';
+  }
+}
+
 /** Polls `read` until it answers, so a client-rendered page is not read too early. */
 export function waitFor<T>(read: () => T | null, timeoutMs: number, pollMs = 150): Promise<T | null> {
   const immediate = read();

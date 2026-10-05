@@ -38,7 +38,7 @@ From captured logged-in pages, kept local only (`fixtures/`, gitignored).
 Both pages offer more than one image URL, and the wrong one is worse than none:
 
 - **Blibli** serves site art from the same host as product photos, so the path decides: `/wcsstore/` is a catalog image, `/siva/asset/…` is a banner — a live page fell back to `siva/asset/09_2023/homepage_fb_rebranding.jpg`. Only the catalog path is accepted, and the JSON-LD `thumbnail` variant of the same file is upgraded to `full/`.
-- **Lazada** product photos live under `/kf/` on both the file broker and the image CDN; its store badges live under `/tps/`. Only `/kf/` is accepted.
+- **Lazada** serves product photos in two shapes, depending on the item: `laz-img-sg.alicdn.com/p/<hash>.jpg` — arriving as **protocol-relative** URLs (`//host/…`) in the structured data — and `filebroker-cdn.lazada.co.id/kf/<hash>.jpg`, with the `img.lazcdn.com` CDN serving either under `/g/p/` or `/g/ff/kf/`. Its store badges and site art live under `/tps/`. So an image is accepted when it resolves to https, sits on one of those image hosts, has a `/p/` or `/kf/` path, and is not under `/tps/`. Protocol-relative URLs are resolved to `https:` rather than dropped, which is what made the second shape invisible at first.
 - **Both** scan *every* JSON-LD `Product` block for image candidates, not only the one that carries the name, and store an empty `image_url` (with a console warning) rather than a banner or a badge. The app keeps its existing image when the payload carries none.
 
 ## Decisions

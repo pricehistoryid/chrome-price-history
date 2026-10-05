@@ -153,3 +153,28 @@ describe('scrapeLazadaPDP image sources', () => {
     expect(result?.imageUrl).toBe('https://filebroker-cdn.lazada.co.id/kf/second-block.jpg');
   });
 });
+
+describe('scrapeLazadaPDP image shapes', () => {
+  it('resolves the protocol-relative alicdn photos from the other page shape', async () => {
+    install();
+    document.head.innerHTML = `<script type="application/ld+json">${JSON.stringify({
+      ...ldProduct,
+      image: ['//laz-img-sg.alicdn.com/p/ae1600b454cdce0ce0a1900091528dfc.jpg', '//laz-img-sg.alicdn.com/p/d78a242bb00ba75d3c881034845f9fd6.jpg'],
+    })}</script>
+      <meta property="og:image" content="https://img.lazcdn.com/g/p/ae1600b454cdce0ce0a1900091528dfc.jpg_720x720q80.jpg_.webp">`;
+
+    const result = await scrapeLazadaPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('https://laz-img-sg.alicdn.com/p/ae1600b454cdce0ce0a1900091528dfc.jpg');
+  });
+
+  it('accepts the /g/p/ CDN shape when the structured data has nothing usable', async () => {
+    install();
+    document.head.innerHTML = `<script type="application/ld+json">${JSON.stringify({ ...ldProduct, image: undefined })}</script>
+      <meta property="og:image" content="https://img.lazcdn.com/g/p/ae1600b454cdce0ce0a1900091528dfc.jpg_720x720q80.jpg_.webp">`;
+
+    const result = await scrapeLazadaPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('https://img.lazcdn.com/g/p/ae1600b454cdce0ce0a1900091528dfc.jpg_720x720q80.jpg_.webp');
+  });
+});
