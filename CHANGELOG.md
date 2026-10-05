@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+- The floating button's icon loads from the extension instead of `raw.githubusercontent.com/.../master/...`, so it works offline and no longer follows a mutable branch
+
 ## [1.1.0] - 2026-10-04
 - Firefox builds target MV3 like Chrome, instead of silently falling back to MV2
 - Production builds no longer request host permissions for localhost

@@ -34,3 +34,6 @@ web-ext.config.ts
 
 # Local scraped pages used to derive selectors; never committed
 fixtures/
+
+# App-side handoff documents: written here on purpose, never committed
+docs/handoff/
