@@ -16,7 +16,7 @@ The extension uses `chrome.storage.local`, which keeps data on this machine and 
 
 ## What is sent to pricehistory.id
 
-On Shopee product pages, and on Tokopedia product pages, search results, and wishlist pages, the extension uploads the following fields over HTTPS to `https://pricehistory.id/api/v1/price`:
+On product pages at Tokopedia, Shopee, Blibli, and Lazada — and on Tokopedia search results and wishlist pages — the extension uploads the following fields over HTTPS to `https://pricehistory.id/api/v1/price`:
 
 - product URL
 - product name
@@ -30,7 +30,7 @@ Nothing else is transmitted. The extension does not send page content, search te
 ## What the extension does not do
 
 - No analytics, crash reporting, or advertising SDKs.
-- No reading of any page other than Tokopedia product, search, and wishlist pages and Shopee product pages.
+- No reading of any page other than product pages on Tokopedia, Shopee, Blibli, and Lazada, plus Tokopedia search and wishlist pages.
 - No data shared with anyone other than `pricehistory.id`.
 - No affiliate or referral links are generated today.
 
@@ -43,6 +43,8 @@ Nothing else is transmitted. The extension does not send page content, search te
 | `activeTab`, `scripting` | Running the price scraper on the page you are viewing |
 | `*://*.tokopedia.com/*` | Reading prices from Tokopedia pages |
 | `*://*.shopee.co.id/*` | Reading prices from Shopee product pages |
+| `*://*.blibli.com/*` | Reading prices from Blibli product pages |
+| `*://*.lazada.co.id/*` | Reading prices from Lazada product pages |
 | `https://pricehistory.id/*` | Uploading collected prices |
 
 ## Your choices

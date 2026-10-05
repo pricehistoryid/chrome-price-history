@@ -74,12 +74,12 @@ Ordered by leverage.
 - **Item 3** — failed uploads are queued locally and drained on the next successful request; the popup reports the backlog. The API is down, so this is currently the only thing standing between an outage and permanent data loss.
 - **Item 4** — the popup's portal button and the chart modal's footer now deep-link to the product's page in the app, which is where tracking and alerts live. With affiliate links out of scope, this clickout is the revenue path. Uses the recovered route above.
 - **Item 10** — local history is bounded: 365 points per product and 200 products, ranked by newest price date.
-- **Item 6 (Shopee product pages)** — recorded from Shopee's own JSON-LD rather than its content-hashed class names, verified by running the scraper against a captured product page. Variant ranges record the low end. The classifier now answers for two marketplaces and owns the host allowlist that the upload validator previously hardcoded to Tokopedia.
+- **Item 6 (product pages on all four marketplaces)** — Tokopedia, Shopee, Blibli, and Lazada product pages are recorded. Shopee, Blibli, and Lazada are read from JSON-LD for identity and from the page for price, because none of the three keeps the buyer's price in structured data: Shopee carries the item's range, Blibli the promo range, Lazada no price at all. Verified by running the built scrapers against captured pages for each. Each also watches its price element, since a variant selection changes the price without changing the URL.
 - **Item 9** — the popup, the chart modal, and the extension description speak Bahasa Indonesia, dates format as `id-ID`, and the popup header shows the title its stylesheet already expected. `docs/store-listing.md` carries the listing copy, the per-permission justifications CWS asks for, the data-disclosure answers, and two 1280×800 screenshots rendered from the real build (the chart one bundles `chart.ts`, so it is the real chart, not a drawing). The README shows both instead of the stale promotion gif.
 
 **Next, in order**
 
-- **Item 6 (rest)** — Shopee search and wishlist pages, then Lazada and Blibli. Each wants the captured-page-fixture treatment Shopee's product page got; selectors derived from a real saved page, never guessed.
+- **Item 6 (rest)** — search and wishlist pages for Shopee, Blibli, and Lazada. Each wants the captured-page-fixture treatment the product pages got; selectors derived from a real saved page, never guessed.
 - **Item 5** (local half only) — the popup shows what the extension has stored. The search-card chips still need the app to serve prices.
 - **Item 8** — telemetry, narrowed: installs, scrape success per marketplace, chart open. Clickouts are the app's to count.
 

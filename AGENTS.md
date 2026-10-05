@@ -20,7 +20,7 @@ Price History ID is a browser extension (Chrome & Firefox) built with the **WXT*
     - `content/`: Versioned content scripts.
         - `v3/`: **Current Active Version** (TypeScript).
             - `inject.ts`: Handles UI injection (modals, buttons) into the host page.
-            - `scraper/`: One module per marketplace and page type — `tokopedia/{pdp,search,wishlist}.ts`, `shopee/pdp.ts` — plus the shared `fallback.ts` strategies and `result.ts` payload shape.
+            - `scraper/`: One module per marketplace and page type — `tokopedia/{pdp,search,wishlist}.ts`, `shopee/pdp.ts`, `blibli/pdp.ts`, `lazada/pdp.ts` — plus `page-data.ts` (shared JSON-LD, meta, amount and watcher helpers), `fallback.ts` strategies and `result.ts` payload shape.
             - `price-history.ts`: Core logic for managing and storing price data in `chrome.storage.local`.
             - `chart.ts`: Logic for rendering the price history charts.
             - `api.ts`: Synchronization with `pricehistory.id`.
@@ -61,6 +61,7 @@ Price History ID is a browser extension (Chrome & Firefox) built with the **WXT*
 ## Key Files
 - `wxt.config.ts`: Manifest permissions, host permissions, and Vite build settings.
 - `entrypoints/content/v3/scraper/tokopedia/pdp.ts`: Reference for Tokopedia Product Detail Page scraping logic (DOM selectors with fallbacks).
-- `entrypoints/content/v3/scraper/shopee/pdp.ts`: Reference for scraping a marketplace that publishes product JSON-LD (structured data first, DOM only for the sold count). Selectors were derived from a real saved page, which stays out of the repo under the gitignored `fixtures/`.
+- `entrypoints/content/v3/scraper/shopee/pdp.ts`: Reference for scraping a marketplace that publishes product JSON-LD (structured data for identity, the DOM for price). Selectors were derived from real saved pages, which stay out of the repo under the gitignored `fixtures/`.
+- `entrypoints/content/v3/scraper/page-data.ts`: The shared helpers for marketplaces whose price is only in the DOM, including the price watcher that makes variant selection re-scrape.
 - `entrypoints/content/v3/price-history.ts`: Reference for how data is processed and stored.
 - `entrypoints/content/v3/inject.ts`: Reference for how the extension UI is added to e-commerce pages.

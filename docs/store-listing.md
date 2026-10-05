@@ -17,13 +17,13 @@ Everything a Chrome Web Store (CWS) or Firefox Add-ons (AMO) submission asks for
 
 ## Short description (CWS limit: 132 characters)
 
-> Riwayat harga produk Tokopedia dan Shopee — harga terbaru, harga terendah, dan tren harga, langsung saat Anda berbelanja.
+> Riwayat harga produk di Tokopedia, Shopee, Blibli, dan Lazada — harga terbaru, harga terendah, dan tren harga.
 
 ## Detailed description (Bahasa Indonesia)
 
-**Riwayat harga di setiap halaman produk Tokopedia dan Shopee.**
+**Riwayat harga di setiap halaman produk Tokopedia, Shopee, Blibli, dan Lazada.**
 
-Buka halaman produk apa pun di Tokopedia atau Shopee dan lihat riwayat harganya: harga terbaru, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
+Buka halaman produk apa pun di keempat marketplace itu dan lihat riwayat harganya: harga terbaru, harga terendah yang pernah tercatat, dan grafik tren harga dengan garis harga rata-rata. Tidak perlu membuka tab lain, tidak perlu akun.
 
 **Yang Anda dapatkan**
 
@@ -38,11 +38,11 @@ Riwayat harga disimpan di peramban Anda. Harga yang terkumpul juga dikirim ke pr
 
 **Catatan**
 
-Ekstensi ini mendukung halaman produk di Tokopedia dan Shopee. Halaman pencarian dan wishlist baru didukung di Tokopedia. Lazada dan Blibli belum didukung.
+Ekstensi ini mendukung halaman produk di Tokopedia, Shopee, Blibli, dan Lazada. Halaman pencarian dan wishlist baru didukung di Tokopedia.
 
 ## English summary (for reviewers)
 
-Price History ID shows a price history chart on Tokopedia and Shopee product pages: the current price, the lowest price recorded so far, and an average-price line. Product pages are recorded as you browse; the price points are also sent to pricehistory.id, the operator's own service. No analytics, no ads, no third-party sharing, no remote code.
+Price History ID shows a price history chart on product pages at Tokopedia, Shopee, Blibli, and Lazada: the current price, the lowest price recorded so far, and an average-price line. Product pages are recorded as you browse; the price points are also sent to pricehistory.id, the operator's own service. No analytics, no ads, no third-party sharing, no remote code.
 
 ## Permission justifications
 
@@ -55,9 +55,11 @@ CWS asks for a sentence per permission; paste these.
 | `activeTab`, `scripting` | Runs the price scraper on the product page the user is viewing. |
 | `*://*.tokopedia.com/*` | Reads product name, price, image, rating, and units sold from the product, search, and wishlist pages the user opens. |
 | `*://*.shopee.co.id/*` | Reads the same fields from Shopee product pages, using the structured data Shopee publishes in the page. |
+| `*://*.blibli.com/*` | Reads the same fields from Blibli product pages. |
+| `*://*.lazada.co.id/*` | Reads the same fields from Lazada product pages. |
 | `https://pricehistory.id/*` | Uploads the collected price points to the operator's own service so price history survives across devices. |
 
-Single purpose statement: *the extension records and displays price history for products on Tokopedia and Shopee.*
+Single purpose statement: *the extension records and displays price history for products on Tokopedia, Shopee, Blibli, and Lazada.*
 
 ## Data disclosure
 

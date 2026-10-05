@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Blibli and Lazada product pages are recorded. Blibli's price comes from the page (its JSON-LD carries the promo *range*, so a captured page said 200000 while the buyer paid 185000); Lazada's JSON-LD carries no price at all, so its sale price comes from the page too, not the struck-through original
+- Lazada's store-level rating and sales figures are reported as unknown rather than copied into the product's rating and sold fields
+- Lazada product URLs collapse to the canonical form the page itself declares, dropping the sku, so one product cannot end up with two records
+- `scraper/page-data.ts` now holds the helpers the three DOM-priced marketplaces share — JSON-LD reading, meta tags, amount parsing, the bounded wait, and the price watcher — and Shopee's scraper was rewritten onto them
 - The floating button's icon loads from the extension instead of `raw.githubusercontent.com/.../master/...`, so it works offline and no longer follows a mutable branch
 
 ## [1.1.0] - 2026-10-04
