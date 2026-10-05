@@ -49,7 +49,7 @@ describe('Modal handoff', () => {
 
     const link = modal.querySelector<HTMLAnchorElement>('.modal-footer a');
     expect(link?.getAttribute('href')).toBe(
-      'https://pricehistory.id/product/www-tokopedia-com-shop-a-sepatu-abc123',
+      'https://pricehistory.id/product/tokopedia-shop-a-sepatu-abc123',
     );
   });
 });

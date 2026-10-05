@@ -254,7 +254,7 @@ describe('popup handoff', () => {
 
     await render();
 
-    expect(portalHref()).toBe('https://pricehistory.id/product/www-tokopedia-com-shop-a-sepatu-abc123');
+    expect(portalHref()).toBe('https://pricehistory.id/product/tokopedia-shop-a-sepatu-abc123');
   });
 
   it('keeps the dashboard link on pages with no product', async () => {

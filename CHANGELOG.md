@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Product links use the app's own slug — `tokopedia-<shop>-<slug>`, `shopee-<slug>-i-<shopid>-<itemid>` — instead of the `www-<host>-com-…` shape the 2025 sitemap implied, which 404s against the rewritten app. The extension's builder now mirrors the app's `generateProductSlug`, checked by running both over the same URLs
 - Product images are validated instead of taken on faith: Blibli's page defaults (site banners under `/siva/asset/`) and Lazada's store badges (`/tps/`) are skipped in favour of a real catalog photo, Blibli's thumbnail is upgraded to the full-size file, both scan every JSON-LD product block for an image, and an empty image is sent rather than site art
 - Lazada's second image shape is recognised — `//laz-img-sg.alicdn.com/p/…` and `img.lazcdn.com/g/p/…`, protocol-relative included — where only `/kf/` paths were accepted before, so those products shipped without a photo
 - Development targets the local API directly (`http://localhost:3001/api/v1/price`) instead of the dashboard's Vite proxy on 3000
