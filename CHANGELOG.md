@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- The retry queue holds 5,000 observations instead of 500, so an API outage no longer evicts a browsing session's worth of prices before they can be delivered
+- Firefox builds declare their data collection to AMO (`websiteActivity`, `websiteContent`) and the chart tooltip builds its text as elements instead of assigning `innerHTML`; addons-linter reports zero errors, warnings and notices
 - The API URL follows the build mode: `pnpm dev` uploads to `http://localhost:3000/api/v1/price` from `.env.development`, `pnpm build` to `https://pricehistory.id/api/v1/price` from `.env.production`
 - `VITE_API_URL` has no fallback — a development build queues its batches instead of quietly uploading to production
 - Blibli and Lazada product pages are recorded. Blibli's price comes from the page (its JSON-LD carries the promo *range*, so a captured page said 200000 while the buyer paid 185000); Lazada's JSON-LD carries no price at all, so its sale price comes from the page too, not the struck-through original
