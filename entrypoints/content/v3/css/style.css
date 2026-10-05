@@ -9,11 +9,12 @@
   height: 60px;
   right: -5px; /* Slight overlap with edge */
   top: 0px;
+  background-color: #fff;
+  /* The mark is set from the bundled icon by floating-button.ts, so the button
+     needs no network and does not follow a mutable branch. */
   background-size: 80%;
   background-position: center;
   background-repeat: no-repeat;
-  background-color: #fff;
-  background-image: url('https://raw.githubusercontent.com/pricehistoryid/chrome-price-history/master/assets/price-history-128.png');
   border-radius: 30px 0 0 30px; /* Semi-circle */
   border: 1px solid #ccc;
   border-right: none;

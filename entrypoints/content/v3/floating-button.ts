@@ -14,10 +14,16 @@ export class FloatingButton {
   }
 
   private createElement(): HTMLElement {
-    return createElement('button', {
+    const button = createElement('button', {
       class: 'ph-floating-btn',
       id: 'ph-floating-btn',
     });
+
+    // The button's mark ships with the extension and is exposed to these hosts
+    // by `web_accessible_resources`, so it loads with no network request.
+    button.style.backgroundImage = `url("${chrome.runtime.getURL('icon/128.png')}")`;
+
+    return button;
   }
 
   private initDrag() {

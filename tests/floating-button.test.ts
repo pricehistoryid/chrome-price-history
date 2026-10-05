@@ -6,7 +6,10 @@ beforeAll(() => {
     get: vi.fn((keys, callback) => callback({})),
     set: vi.fn(),
   };
-  (global as any).chrome = { storage: { local: mockStorage } };
+  (global as any).chrome = {
+    storage: { local: mockStorage },
+    runtime: { getURL: (path: string) => `chrome-extension://test/${path}` },
+  };
   
   // Mock window properties
   (window as any).innerHeight = 800;
@@ -32,5 +35,15 @@ describe('FloatingButton', () => {
     (fb as any).updatePosition();
 
     expect(btn.style.top).toBe('420px');
+  });
+});
+
+describe('FloatingButton mark', () => {
+  it('loads the bundled icon rather than a network URL', () => {
+    const fb = new FloatingButton();
+    const btn = fb.getElement();
+
+    expect(btn.style.backgroundImage).toContain('chrome-extension://test/icon/128.png');
+    expect(btn.style.backgroundImage).not.toContain('http');
   });
 });
