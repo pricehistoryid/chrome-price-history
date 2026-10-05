@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Selecting a different variant now updates the chart: the price is read from the page's `aria-live` region (JSON-LD only ever carries the item's range), and a price change that comes with no navigation re-runs the scraper
+- A price change within the same day replaces that day's point instead of keeping only the day's lowest, so a switch to a pricier variant is recorded
 - Client-side navigation on Shopee re-runs the scraper instead of leaving the first product's chart on screen: the URL watcher was a hardcoded Tokopedia pattern
 - Shopee product pages are recorded: name, image, rating and price come from the JSON-LD Shopee publishes in the page, and the sold count from its `Terjual` label
 - Products with variants record the low end of the price range, which is the figure the listing advertises

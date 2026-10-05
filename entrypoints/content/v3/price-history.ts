@@ -120,8 +120,11 @@ export class PriceHistory {
 
     // Add new data if it's different from the latest
     if (latestPrice.price !== newData.price || latestPrice.time !== newData.time) {
-      if (latestPrice.time === newData.time && latestPrice.price > newData.price) {
-        this.ph!.prevPrice[0].price = newData.price;
+      if (latestPrice.time === newData.time && latestPrice.price !== newData.price) {
+        // Latest observation of the day wins. It used to keep only the day's
+        // lowest, which silently dropped a higher price — a variant switch, or
+        // a price that recovered. The all-time low is tracked separately.
+        this.ph!.prevPrice[0] = newData;
       } else if (latestPrice.time !== newData.time) {
         this.ph!.prevPrice.unshift(newData);
       }

@@ -1,6 +1,6 @@
 import { ChartManager } from './chart';
 import { scrapePDP } from './scraper/tokopedia/pdp';
-import { scrapeShopeePDP } from './scraper/shopee/pdp';
+import { scrapeShopeePDP, watchShopeePrice } from './scraper/shopee/pdp';
 import { PriceHistory } from './price-history';
 import { updateProductPrice, updateProductPrices } from './api';
 import { floatingButton, modal } from './inject';
@@ -163,11 +163,20 @@ function resetChart(chart: ChartManager) {
   chart.init();
 }
 
+/** Selecting a variant changes no URL, so the page itself has to be watched. */
+let priceWatcher: (() => void) | null = null;
+
+function disarmPriceWatcher() {
+  priceWatcher?.();
+  priceWatcher = null;
+}
+
 async function processScraping(
   ph: PriceHistory,
   chart: ChartManager,
   url: string
 ) {
+  disarmPriceWatcher();
   const result = await scrapePage(url);
 
   switch (result.pageType) {
@@ -182,6 +191,12 @@ async function processScraping(
         console.error('Error saving price history:', error);
       });
       void updateProductPrice(result.result[0]);
+
+      if (classifyPage(url).marketplace === 'shopee') {
+        priceWatcher = watchShopeePrice(() => {
+          void processScraping(ph, chart, `${location.origin}${location.pathname}`);
+        });
+      }
       break;
     }
 

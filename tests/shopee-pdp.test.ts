@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { scrapeShopeePDP } from '../entrypoints/content/v3/scraper/shopee/pdp';
+import { scrapeShopeePDP, watchShopeePrice } from '../entrypoints/content/v3/scraper/shopee/pdp';
 import { validateProductData } from '../entrypoints/content/v3/utils/validation';
 
 /**
@@ -34,6 +34,11 @@ function appendLdJson(value: unknown) {
   script.type = 'application/ld+json';
   script.textContent = JSON.stringify(value);
   document.head.appendChild(script);
+}
+
+/** The `aria-live` region that holds the price, as both captured pages have it. */
+function priceSection(text: string): string {
+  return `<div class="AP_iE1"><section aria-live="polite"><div class="nt0EaI"><div class="pyzxvq pw3J3G">${text}</div></div></section></div>`;
 }
 
 function install({ head = '', body = '' }: { head?: string; body?: string } = {}) {
@@ -168,6 +173,47 @@ describe('scrapeShopeePDP', () => {
     await expect(scrapeShopeePDP(PRODUCT_URL)).resolves.toBeNull();
   });
 
+  it('records the variant price the page is showing, not the JSON-LD range', async () => {
+    install({
+      head: ldJson(rangedProduct), // offers 1600000 - 1700000
+      body: priceSection('Rp1.700.000') + '<div><span>189</span> Terjual</div>',
+    });
+
+    const result = await scrapeShopeePDP(PRODUCT_URL);
+
+    expect(result?.price).toBe(1700000);
+  });
+
+  it('takes the low end while the page still shows a range', async () => {
+    install({
+      head: ldJson(rangedProduct),
+      body: priceSection('Rp1.600.000 - Rp1.700.000'),
+    });
+
+    const result = await scrapeShopeePDP(PRODUCT_URL);
+
+    expect(result?.price).toBe(1600000);
+  });
+
+  it('falls back to the JSON-LD price when the page shows no price element', async () => {
+    install({ head: ldJson(rangedProduct) });
+
+    const result = await scrapeShopeePDP(PRODUCT_URL);
+
+    expect(result?.price).toBe(1600000);
+  });
+
+  it('ignores figures that are not the product price', async () => {
+    install({
+      head: ldJson(rangedProduct),
+      body: priceSection('Rp1.600.000') + '<div>Rp61.458/bulan</div><div>Rp10.000</div>',
+    });
+
+    const result = await scrapeShopeePDP(PRODUCT_URL);
+
+    expect(result?.price).toBe(1600000);
+  });
+
   it('produces a payload the upload path accepts', async () => {
     install({
       head: ldJson(rangedProduct),
@@ -177,5 +223,68 @@ describe('scrapeShopeePDP', () => {
     const result = await scrapeShopeePDP(PRODUCT_URL);
 
     expect(() => validateProductData(result!)).not.toThrow();
+  });
+});
+
+describe('watchShopeePrice', () => {
+  function priceElement(): HTMLElement {
+    return document.querySelector('.pyzxvq') as HTMLElement;
+  }
+
+  it('reports a variant selection, which changes no URL', async () => {
+    vi.useFakeTimers();
+    install({ head: ldJson(rangedProduct), body: priceSection('Rp1.475.000 - Rp1.950.000') });
+    const onChange = vi.fn();
+
+    const dispose = watchShopeePrice(onChange, { debounceMs: 100 });
+    priceElement().textContent = 'Rp1.950.000';
+
+    await vi.advanceTimersByTimeAsync(1);   // let the MutationObserver deliver
+    await vi.advanceTimersByTimeAsync(200); // let the debounce fire
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    dispose();
+  });
+
+  it('stays quiet when the price is rewritten with the same value', async () => {
+    vi.useFakeTimers();
+    install({ head: ldJson(rangedProduct), body: priceSection('Rp1.475.000') });
+    const onChange = vi.fn();
+
+    const dispose = watchShopeePrice(onChange, { debounceMs: 100 });
+    priceElement().textContent = 'Rp1.475.000';
+
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(onChange).not.toHaveBeenCalled();
+    dispose();
+  });
+
+  it('stops reporting once disposed', async () => {
+    vi.useFakeTimers();
+    install({ head: ldJson(rangedProduct), body: priceSection('Rp1.475.000') });
+    const onChange = vi.fn();
+
+    const dispose = watchShopeePrice(onChange, { debounceMs: 100 });
+    dispose();
+    priceElement().textContent = 'Rp1.900.000';
+
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('does nothing on a page with no price region', async () => {
+    vi.useFakeTimers();
+    install({ head: ldJson(rangedProduct) });
+    const onChange = vi.fn();
+
+    const dispose = watchShopeePrice(onChange, { debounceMs: 100 });
+    await vi.advanceTimersByTimeAsync(200);
+
+    expect(onChange).not.toHaveBeenCalled();
+    dispose();
   });
 });

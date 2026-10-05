@@ -35,13 +35,24 @@ Prefer machine-readable data, fall back towards the DOM:
 |---|---|---|
 | name | JSON-LD `Product.name` | `og:title`, with the `\| Shopee Indonesia` suffix stripped |
 | image_url | JSON-LD `Product.image` | `og:image` |
-| price | JSON-LD `offers.lowPrice` (AggregateOffer) or `offers.price` (Offer) | first `Rp` figure in the DOM |
+| price | the price in the page's `aria-live` region — the *selected* variant | JSON-LD `offers.lowPrice` / `offers.price` |
 | rating | JSON-LD `aggregateRating.ratingValue` | DOM figure before the `penilaian` label |
 | sold | — | first number in the element whose text contains `Terjual` |
 
+### Why the price comes from the page, not from the JSON-LD
+
+A second captured page with variants (`fixtures/shopee/pdp-2.html`) showed the split:
+
+- JSON-LD carries an `AggregateOffer` for the whole item: `lowPrice 1475000`, `highPrice 1950000`. It never moves.
+- The visible price sits in `<section aria-live="polite">` as `Rp1.475.000 - Rp1.950.000`, one such region per page in both captures.
+- Selecting a variant rewrites that text — and changes **no URL**, so no URL watcher can see it.
+
+So the price is read from the `aria-live` region (the low end while a range is displayed, since nothing is selected), and `watchShopeePrice` observes that region to re-run the scrape when the text changes. Verified on the captured page: the JSON-LD stayed at `1475000.00`, the scrape returned `1950000` after the price text was rewritten, and the watcher fired once.
+
 ## Decisions
 
-- **Price ranges record the low end.** This product genuinely has two variants (1.6jt and 1.7jt). The low end is what the listing advertises as its price and keeps the history comparable across time; storing the high end would make a cheap variant look like a price drop. Changing this later is one line.
+- **Price ranges record the low end.** This product genuinely has two variants. The low end is what the listing advertises as its price and keeps the history comparable across time; storing the high end would make a cheap variant look like a price drop. Changing this later is one line.
+- **A change within the same day replaces that day's point.** The write path used to keep only the day's lowest, which silently dropped every *rise* — including a switch to a more expensive variant, which is what a buyer sees. The all-time low is tracked separately in `lowestPrice`, so nothing is lost by letting the day's point follow the latest observation.
 - **Shopee support is PDP only for v1.** Search and wishlist need their own scrapers, and Shopee's search markup is a different (card-based) shape we have not captured. Tokopedia's search and wishlist paths stay as they are.
 - **The Shopee host permission ships now**, because the content script cannot run on a Shopee page without it. Existing users will see the new permission on update.
 - **No affiliate links.** Unchanged from the 2026-10-04 decision: the extension scrapes, the app attaches affiliate links on its product page.

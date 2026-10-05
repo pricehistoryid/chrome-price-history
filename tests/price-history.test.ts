@@ -103,6 +103,37 @@ describe('prunePriceHistory', () => {
   });
 });
 
+describe('PriceHistory same-day handling', () => {
+  const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
+
+  it('records the latest price of the day, including a higher one', async () => {
+    const ph = new PriceHistory();
+    const chart = { print: vi.fn() };
+
+    await ph.save({ url, name: 'A', price: 100 }, chart);
+    await ph.save({ url, name: 'A', price: 150 }, chart);
+
+    const stored = store.price_history[url];
+    expect(stored.prevPrice).toHaveLength(1);
+    expect(stored.prevPrice[0].price).toBe(150);
+    expect(stored.lowestPrice.price).toBe(100);
+  });
+
+  it('keeps the day lowest separate from a later rise', async () => {
+    const ph = new PriceHistory();
+    const chart = { print: vi.fn() };
+
+    await ph.save({ url, name: 'A', price: 200 }, chart);
+    await ph.save({ url, name: 'A', price: 120 }, chart);
+    await ph.save({ url, name: 'A', price: 180 }, chart);
+
+    const stored = store.price_history[url];
+    expect(stored.prevPrice).toHaveLength(1);
+    expect(stored.prevPrice[0].price).toBe(180);
+    expect(stored.lowestPrice.price).toBe(120);
+  });
+});
+
 describe('PriceHistory pruning', () => {
   it('trims the stored points when a product has grown past the cap', async () => {
     const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
