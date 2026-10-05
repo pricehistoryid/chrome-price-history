@@ -24,7 +24,7 @@ const ldProduct = {
 
 function install({ sale = '1.845.000' }: { sale?: string } = {}) {
   document.head.innerHTML = `<script type="application/ld+json">${JSON.stringify(ldProduct)}</script>
-    <meta property="og:image" content="https://img.lazcdn.com/og.jpg">`;
+    <meta property="og:image" content="https://img.lazcdn.com/g/ff/kf/og-image.jpg_720x720q80.jpg_.webp">`;
   document.body.innerHTML = `
     <div class="pdp-v2-product-price-content">
       <div class="pdp-v2-product-price-content-salePrice">
@@ -112,5 +112,44 @@ describe('watchLazadaPrice', () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
     dispose();
+  });
+});
+
+describe('scrapeLazadaPDP image', () => {
+  const BADGE = 'https://img.lazcdn.com/g/tps/imgextra/i3/O1CN01kuKV6Y1WIsbGXw5h9_!!6000000002766-2-tps-48-48.png';
+
+  it('rejects a store badge offered as the page image', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    install();
+    document.head.innerHTML = `<script type="application/ld+json">${JSON.stringify({ ...ldProduct, image: BADGE })}</script>
+      <meta property="og:image" content="${BADGE}">`;
+
+    const result = await scrapeLazadaPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('');
+  });
+
+  it('skips a badge and keeps the real photo from the other source', async () => {
+    install();
+    document.head.innerHTML = `<script type="application/ld+json">${JSON.stringify({ ...ldProduct, image: [BADGE] })}</script>
+      <meta property="og:image" content="https://img.lazcdn.com/g/ff/kf/S80dabfe60e434bfca2c2aa1eba47af91r.jpg_720x720q80.jpg_.webp">`;
+
+    const result = await scrapeLazadaPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('https://img.lazcdn.com/g/ff/kf/S80dabfe60e434bfca2c2aa1eba47af91r.jpg_720x720q80.jpg_.webp');
+  });
+});
+
+describe('scrapeLazadaPDP image sources', () => {
+  it('finds the photo on a product block that is not the one carrying the name', async () => {
+    install();
+    document.head.innerHTML =
+      `<script type="application/ld+json">${JSON.stringify({ '@type': 'Product', name: ldProduct.name })}</script>`
+      + `<script type="application/ld+json">${JSON.stringify({ '@type': 'Product', image: ['https://filebroker-cdn.lazada.co.id/kf/second-block.jpg'] })}</script>`
+      + '<meta property="og:image" content="https://img.lazcdn.com/g/tps/imgextra/badge-48-48.png">';
+
+    const result = await scrapeLazadaPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('https://filebroker-cdn.lazada.co.id/kf/second-block.jpg');
   });
 });

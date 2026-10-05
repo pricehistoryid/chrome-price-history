@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Product images are validated instead of taken on faith: Blibli's page defaults (site banners under `/siva/asset/`) and Lazada's store badges (`/tps/`) are skipped in favour of a real catalog photo, Blibli's thumbnail is upgraded to the full-size file, both scan every JSON-LD product block for an image, and an empty image is sent rather than site art
 - Development targets the local API directly (`http://localhost:3001/api/v1/price`) instead of the dashboard's Vite proxy on 3000
 - WXT's dev server is pinned to port 3010. It took the first free port from 3000, landed on the API's 3001, and — bound to localhost, which macOS resolves to `::1` first — shadowed the API for every localhost client
 - Development builds allow any localhost port for the dev-server websocket and the local dashboard; WXT picks a free port from 3000 to 3010 and a hardcoded `ws://localhost:3000` blocked its HMR socket whenever the dashboard already held that port

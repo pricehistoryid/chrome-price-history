@@ -33,6 +33,14 @@ From captured logged-in pages, kept local only (`fixtures/`, gitignored).
 | Blibli | JSON-LD `name`; `og:image` first, JSON-LD image as fallback | `[data-testid="priceComponentOffered"]`, falling back to `offers.lowPrice` | JSON-LD `aggregateRating.ratingValue` | `.sold-seen-label`, `Terjual <n>` |
 | Lazada | JSON-LD `name`, first entry of the `image` array | `.pdp-v2-product-price-content-salePrice-amount` (JSON-LD has no price to fall back to) | none — reported as unknown | none — reported as unknown |
 
+## Image rules
+
+Both pages offer more than one image URL, and the wrong one is worse than none:
+
+- **Blibli** serves site art from the same host as product photos, so the path decides: `/wcsstore/` is a catalog image, `/siva/asset/…` is a banner — a live page fell back to `siva/asset/09_2023/homepage_fb_rebranding.jpg`. Only the catalog path is accepted, and the JSON-LD `thumbnail` variant of the same file is upgraded to `full/`.
+- **Lazada** product photos live under `/kf/` on both the file broker and the image CDN; its store badges live under `/tps/`. Only `/kf/` is accepted.
+- **Both** scan *every* JSON-LD `Product` block for image candidates, not only the one that carries the name, and store an empty `image_url` (with a console warning) rather than a banner or a badge. The app keeps its existing image when the payload carries none.
+
 ## Decisions
 
 - **The DOM price wins on both.** Blibli's structured data describes the promo *range*, and Lazada's describes no price at all, so JSON-LD cannot answer "what does this cost right now". This is the same conclusion Shopee forced, for a different reason each time.

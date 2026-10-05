@@ -13,7 +13,7 @@ const PRODUCT_URL = 'https://www.blibli.com/p/uji-produk-30-sachet/ps--UJI-1-0';
 const ldProduct = {
   '@type': 'Product',
   name: 'Uji Produk 30 Sachet dengan Creatine',
-  image: 'https://www.static-src.com/thumbnail/uji.jpg',
+  image: 'https://www.static-src.com/wcsstore/Indraprastha/images/catalog/thumbnail/catalog-image/UJI-1/uji_full01.jpg',
   offers: { '@type': 'AggregateOffer', lowPrice: 200000, highPrice: 292600, priceCurrency: 'IDR' },
   aggregateRating: { '@type': 'AggregateRating', ratingValue: 4, ratingCount: 23 },
 };
@@ -23,7 +23,7 @@ function install({
   sold = 'Terjual 139',
   head = `<script type="application/ld+json">${JSON.stringify(ldProduct)}</script>`,
 }: { price?: string; sold?: string; head?: string } = {}) {
-  document.head.innerHTML = head + '<meta property="og:image" content="https://www.static-src.com/full/uji.jpg">';
+  document.head.innerHTML = head + '<meta property="og:image" content="https://www.static-src.com/wcsstore/Indraprastha/images/catalog/full/catalog-image/UJI-1/uji_full01.jpg">';
   document.body.innerHTML = `
     <div class="product-price">
       <div class="final-price"><span data-testid="priceComponentOffered">${price}</span></div>
@@ -48,7 +48,7 @@ describe('scrapeBlibliPDP', () => {
       url: PRODUCT_URL,
       name: 'Uji Produk 30 Sachet dengan Creatine',
       price: 185000,
-      imageUrl: 'https://www.static-src.com/full/uji.jpg',
+      imageUrl: 'https://www.static-src.com/wcsstore/Indraprastha/images/catalog/full/catalog-image/UJI-1/uji_full01.jpg',
       rating: 4,
       sold: '139',
     });
@@ -118,5 +118,36 @@ describe('watchBlibliPrice', () => {
 
     expect(onChange).not.toHaveBeenCalled();
     dispose();
+  });
+});
+
+describe('scrapeBlibliPDP image', () => {
+  const BANNER = 'https://www.static-src.com/siva/asset/09_2023/homepage_fb_rebranding.jpg';
+  const CATALOG_THUMB = 'https://www.static-src.com/wcsstore/Indraprastha/images/catalog/thumbnail/catalog-image/UJI-1/uji_full01.jpg';
+  const CATALOG_FULL = CATALOG_THUMB.replace('/thumbnail/', '/full/');
+
+  it('ignores the site banner the page falls back to, and upgrades the thumbnail', async () => {
+    install({
+      price: 'Rp185.000',
+      head: `<script type="application/ld+json">${JSON.stringify(ldProduct)}</script>`
+        + `<meta property="og:image" content="${BANNER}">`,
+    });
+
+    const result = await scrapeBlibliPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe(CATALOG_FULL);
+  });
+
+  it('stores no image rather than site art when only the banner is offered', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    install({
+      price: 'Rp185.000',
+      head: `<script type="application/ld+json">${JSON.stringify({ ...ldProduct, image: undefined })}</script>`
+        + `<meta property="og:image" content="${BANNER}">`,
+    });
+
+    const result = await scrapeBlibliPDP(PRODUCT_URL);
+
+    expect(result?.imageUrl).toBe('');
   });
 });

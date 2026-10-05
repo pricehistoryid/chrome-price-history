@@ -17,6 +17,31 @@ const PRICE_DEBOUNCE_MS = 150;
 const SOLD_SELECTOR = '.sold-seen-label';
 const SOLD_LABEL = /terjual\s*([\d.,]+)/i;
 
+/**
+ * Blibli serves site art from the same host as product images, so the path is
+ * the discriminator: product photos live under `/wcsstore/`, while banners such
+ * as `/siva/asset/09_2023/homepage_fb_rebranding.jpg` are the default the page
+ * falls back to. Only the catalog path is accepted, since a banner stored as a
+ * product image is worse than none.
+ */
+const CATALOG_IMAGE = '/wcsstore/';
+
+/** The best product image the page offers, or '' rather than site art. */
+function productImageUrl(): string {
+  const declared = [metaContent('og:image'), metaContent('twitter:image')];
+  // Every Product block, not just the one carrying the name: a page can carry
+  // several, and the image is not always on the same one.
+  const fromLd = jsonLdNodes('Product')
+    .flatMap((block) => (Array.isArray(block.image) ? block.image : [block.image]));
+
+  for (const candidate of [...declared, ...fromLd]) {
+    if (typeof candidate !== 'string' || !candidate.includes(CATALOG_IMAGE)) continue;
+    // JSON-LD carries the thumbnail variant of the same file.
+    return candidate.replace('/thumbnail/', '/full/');
+  }
+  return '';
+}
+
 const LD_TIMEOUT_MS = 6000;
 
 /** The JSON-LD product block, preferring one that names the product. */
@@ -82,9 +107,10 @@ export async function scrapeBlibliPDP(
     }
 
     // JSON-LD carries a thumbnail; the og tag carries the full-size image.
-    const images = Array.isArray(product.image) ? product.image : [product.image];
-    const imageUrl = metaContent('og:image')
-      || String(images.find((src) => typeof src === 'string') ?? '');
+    const imageUrl = productImageUrl();
+    if (!imageUrl) {
+      console.warn('Blibli page offered no product image (only site art), storing none');
+    }
 
     const rating = Number(product.aggregateRating?.ratingValue);
     const sold = soldFromDom();

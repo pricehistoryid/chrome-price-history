@@ -13,6 +13,27 @@ const PRICE_SELECTOR = '.pdp-v2-product-price-content-salePrice-amount';
 const PRICE_ROOT = '.pdp-v2-product-price-content';
 const PRICE_DEBOUNCE_MS = 150;
 
+/**
+ * Lazada's product photos live under `/kf/`, on either the file broker or the
+ * image CDN; the store badges and other site art the page carries do not. Only
+ * that path is accepted, since a badge stored as a product image is worse than
+ * none.
+ */
+const PRODUCT_IMAGE = /\/kf\//;
+
+/** The best product image the page offers, or '' rather than site art. */
+function productImageUrl(): string {
+  // Every Product block, not just the one carrying the name: a page can carry
+  // several, and the image is not always on the same one.
+  const fromLd = jsonLdNodes('Product')
+    .flatMap((block) => (Array.isArray(block.image) ? block.image : [block.image]));
+
+  for (const candidate of [...fromLd, metaContent('og:image')]) {
+    if (typeof candidate === 'string' && PRODUCT_IMAGE.test(candidate)) return candidate;
+  }
+  return '';
+}
+
 const LD_TIMEOUT_MS = 6000;
 
 /** The JSON-LD product block, preferring one that names the product. */
@@ -58,8 +79,10 @@ export async function scrapeLazadaPDP(
       return null;
     }
 
-    const images = Array.isArray(product.image) ? product.image : [product.image];
-    const imageUrl = String(images.find((src) => typeof src === 'string') ?? '') || metaContent('og:image');
+    const imageUrl = productImageUrl();
+    if (!imageUrl) {
+      console.warn('Lazada page offered no product image, storing none');
+    }
 
     return {
       url,
