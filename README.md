@@ -93,7 +93,21 @@ A browser extension for tracking price history on Indonesian online marketplaces
    pnpm install
    ```
 
-2. Development server:
+2. Point the extension at your local dashboard. The API URL comes from the build
+   mode, so nothing needs editing:
+   - `pnpm dev` reads `.env.development` → `http://localhost:3000/api/v1/price`
+   - `pnpm build` reads `.env.production` → `https://pricehistory.id/api/v1/price`
+
+   The local origin must also be allowed by the development manifest, which
+   `wxt.config.ts` handles (`DEV_ORIGINS`). Serving the dashboard on another host
+   or port? Put the URL in `.env.development.local` — the highest-precedence env
+   file — and add that origin there too. See `.env.example`.
+
+   Put your JWT in `.env` (untracked). There is deliberately no fallback for the
+   URL: if it is missing, uploads fail and the batches stay in the local retry
+   queue rather than reaching production by accident.
+
+3. Development server:
    ```bash
    # Chrome development
    pnpm dev
@@ -102,7 +116,7 @@ A browser extension for tracking price history on Indonesian online marketplaces
    pnpm dev:firefox
    ```
 
-3. Build for production:
+4. Build for production:
    ```bash
    # Chrome build
    pnpm build
@@ -111,7 +125,7 @@ A browser extension for tracking price history on Indonesian online marketplaces
    pnpm build:firefox
    ```
 
-4. Create distribution packages:
+5. Create distribution packages:
    ```bash
    # Chrome package
    pnpm zip

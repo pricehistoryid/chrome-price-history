@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- The API URL follows the build mode: `pnpm dev` uploads to `http://localhost:3000/api/v1/price` from `.env.development`, `pnpm build` to `https://pricehistory.id/api/v1/price` from `.env.production`
+- `VITE_API_URL` has no fallback — a development build queues its batches instead of quietly uploading to production
 - Blibli and Lazada product pages are recorded. Blibli's price comes from the page (its JSON-LD carries the promo *range*, so a captured page said 200000 while the buyer paid 185000); Lazada's JSON-LD carries no price at all, so its sale price comes from the page too, not the struck-through original
 - Lazada's store-level rating and sales figures are reported as unknown rather than copied into the product's rating and sold fields
 - Lazada product URLs collapse to the canonical form the page itself declares, dropping the sku, so one product cannot end up with two records

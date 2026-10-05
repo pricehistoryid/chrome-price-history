@@ -11,6 +11,7 @@ interface WorkerHarness {
   send: (payload: unknown) => Promise<any>;
   navigate: (url?: string) => void;
   sentMessages: () => unknown[][];
+  postedUrls: () => string[];
   postedBodies: () => Array<Array<{ url: string }>>;
   storedQueue: () => unknown;
 }
@@ -82,6 +83,7 @@ async function loadWorker(
       for (const fn of tabListeners) fn(7, { url }, {});
     },
     sentMessages: () => sendMessageMock.mock.calls as unknown[][],
+    postedUrls: () => fetchMock.mock.calls.map((call) => String(call[0])),
     postedBodies: () =>
       fetchMock.mock.calls.map((call) => JSON.parse(String((call[1] as RequestInit).body))),
     storedQueue: () => queue,
@@ -91,6 +93,7 @@ async function loadWorker(
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubEnv('VITE_API_JWT_TOKEN', 'test-token');
+  vi.stubEnv('VITE_API_URL', 'http://localhost:9999/api/v1/price');
 });
 
 afterEach(() => {
@@ -164,5 +167,27 @@ describe('background price upload', () => {
     expect(response.success).toBe(true);
     expect(worker.postedBodies()).toEqual([[product('fresh')], queued]);
     expect(worker.storedQueue()).toEqual([]);
+  });
+});
+
+describe('API endpoint', () => {
+  it('uploads to the endpoint the environment provides', async () => {
+    const worker = await loadWorker(async () => undefined);
+
+    await worker.send([product('a')]);
+
+    expect(worker.postedUrls()).toEqual(['http://localhost:9999/api/v1/price']);
+  });
+
+  it('queues instead of uploading when no endpoint is configured', async () => {
+    vi.stubEnv('VITE_API_URL', '');
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const worker = await loadWorker(async () => undefined);
+
+    const response = await worker.send([product('a')]);
+
+    expect(response.success).toBe(false);
+    expect(worker.postedUrls()).toEqual([]);
+    expect(worker.storedQueue()).toEqual([product('a')]);
   });
 });

@@ -46,6 +46,8 @@ Price History ID is a browser extension (Chrome & Firefox) built with the **WXT*
 | `pnpm exec tsc --noEmit` | Type-check the project (CI gates on this). |
 | `pnpm postinstall` | Run `wxt prepare` to generate types and configuration. |
 
+**Environment:** the API URL is per build mode — `.env.development` (localhost) for `pnpm dev`, `.env.production` (pricehistory.id) for `pnpm build`. There is no fallback, so a dev build cannot upload to production. Machine-specific overrides go in `.env.development.local`; the JWT lives in the untracked `.env`. Precedence, verified against this repo's Vite: `.env.[mode].local` > `.env.[mode]` > `.env.local` > `.env`.
+
 ---
 
 ## Development Conventions

@@ -2,6 +2,8 @@ import { defineConfig } from 'wxt';
 
 // The dashboard on your own machine. Production builds must not ask for
 // access to localhost, so these only land in development manifests.
+// Must cover VITE_API_URL in .env.development, or the background script cannot
+// reach the local API.
 const DEV_ORIGINS = ['http://localhost:3000/*', 'http://localhost:3001/*'];
 const DEV_CONNECT_SRC = 'ws://localhost:3000 http://localhost:3000 http://localhost:3001';
 

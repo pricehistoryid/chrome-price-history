@@ -57,8 +57,14 @@ async function handleUpdateProductPrice(payload: unknown): Promise<string> {
 }
 
 async function postPrices(batch: QueuedPrice[]): Promise<string> {
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://pricehistory.id/api/v1/price';
+  const apiUrl = import.meta.env.VITE_API_URL;
   const jwtToken = import.meta.env.VITE_API_JWT_TOKEN;
+
+  if (!apiUrl) {
+    // No fallback on purpose: a development build must not quietly upload to
+    // production. .env.development and .env.production set this per mode.
+    throw new Error('VITE_API_URL is missing; see .env.example.');
+  }
 
   if (!jwtToken) {
     throw new Error('API JWT token is missing in background script.');
