@@ -17,7 +17,7 @@ Evidence from the code, not the README — the two disagree.
 | Affiliate code: none | no matches for `affiliate` outside README and the roadmap | Phase 1 deliverable |
 | Analytics: none. No `alarms`, no `notifications` | `wxt.config.ts` permissions; no telemetry matches | the roadmap targeted installs/DAU/rating |
 | One shared JWT is compiled into every install | `background.ts` reads `VITE_API_JWT_TOKEN`; token present in `.output/chrome-mv3/background.js` | — |
-| CI builds and releases but never runs the test suite | `.github/workflows/main.yml` | "Test thoroughly" |
+| The chart only ever shows prices this browser recorded | `chart.ts` renders `price_history` from `chrome.storage.local`; `api.ts` exposes POSTs only, and the one `fetch` in the codebase is the upload | "Buka halaman produk apa pun … dan lihat riwayat harganya" (store listing) — true only after the user has visited that product repeatedly |
 
 ## 2. Strategic reframe
 
@@ -47,6 +47,7 @@ Ordered by leverage.
 | 8 | **Telemetry** — install, scrape success per marketplace, chart open, clickout, consent-gated | The roadmap's own success criteria are unverifiable today | S | App endpoint |
 | 9 | **Consent screen and Bahasa Indonesia copy** | Trust, and market fit for an Indonesian audience | S | — |
 | 10 | **Storage policy** — cap or roll up `prevPrice` | Unbounded growth will hit quota; the roadmap's "10 records" cap was never implemented | S | — |
+| 11 | **History read path** — fetch the app's price history for the product being viewed and render it | The chart is local-only, so a fresh install shows a single point on the product and the dataset the app already holds never reaches the user. This is the difference between "a chart of your own visits" and "the price history you installed it for" | M | App must expose a read endpoint (handoff §6a) |
 
 ### App owns (do not build in the extension)
 
@@ -64,7 +65,7 @@ Ordered by leverage.
 - **`https://pricehistory.id/` returns HTTP 404** (Zoraxy "target host not found"), and so does `POST /api/v1/price`. Every price the extension has collected recently has been dropped silently. This makes item 3 the only piece of the backlog that is fixing active data loss.
 - **The app's product route was recovered from its own sitemap.** Archived captures of `pricehistory.id/sitemap.xml` list product URLs, and captures of those pages returned HTTP 200 (last seen January 2025). The shape is `https://pricehistory.id/product/<product-url-without-scheme, dots and slashes as dashes>`, which is what item 4 now builds. Caveat: the newest capture is 21 months old and the live app is down, so the route is unverified against today's deployment — worth one click before shipping.
 - **Item 2 still cannot be built.** Per-device identity needs credentials only the app can issue, and the app is offline.
-- **The shared token ships in the release artifact.** Any installed user can extract it and call the API as the extension.
+- **The shared token ships in the release artifact** — demonstrated, not theorised: the token was extracted from `pricehistory.id`'s own published 1.1.0 zip during this session, by reading the string out of the bundled `background.js`. It is inlined at build time, so it cannot identify a user or a device, and any downloader can use it.
 
 ## 5. Where the work stands
 
@@ -77,8 +78,16 @@ Ordered by leverage.
 - **Item 6 (product pages on all four marketplaces)** — Tokopedia, Shopee, Blibli, and Lazada product pages are recorded. Shopee, Blibli, and Lazada are read from JSON-LD for identity and from the page for price, because none of the three keeps the buyer's price in structured data: Shopee carries the item's range, Blibli the promo range, Lazada no price at all. Verified by running the built scrapers against captured pages for each. Each also watches its price element, since a variant selection changes the price without changing the URL.
 - **Item 9** — the popup, the chart modal, and the extension description speak Bahasa Indonesia, dates format as `id-ID`, and the popup header shows the title its stylesheet already expected. `docs/store-listing.md` carries the listing copy, the per-permission justifications CWS asks for, the data-disclosure answers, and two 1280×800 screenshots rendered from the real build (the chart one bundles `chart.ts`, so it is the real chart, not a drawing). The README shows both instead of the stale promotion gif.
 
+**Hygiene, since 1.1.0 shipped**
+
+- The API URL follows the build mode — `pnpm dev` → localhost, `pnpm build` → pricehistory.id — with **no fallback**, so a development build queues its batches instead of writing into the production dataset.
+- The floating button's mark loads from the extension, not a mutable GitHub branch, so it survives being offline.
+- The retry queue holds **5,000** observations instead of 500. Mine was roughly one browsing session, and while the API is down that queue is the only copy of what the extension has seen.
+- Firefox's manifest declares its data collection (`websiteActivity`, `websiteContent`); `addons-linter` now reports **zero errors, warnings and notices**, which was the last thing standing between the Firefox build and a submission.
+
 **Next, in order**
 
+- **Item 11 (history read path)** — first, because it decides whether a new install is worth keeping: the chart is local-only today, so a fresh user sees one point and the app's history never reaches them. It is also the cheapest thing on this list *for the app* — one endpoint (handoff §6a).
 - **Item 6 (rest)** — search and wishlist pages for Shopee, Blibli, and Lazada. Each wants the captured-page-fixture treatment the product pages got; selectors derived from a real saved page, never guessed.
 - **Item 5** (local half only) — the popup shows what the extension has stored. The search-card chips still need the app to serve prices.
 - **Item 8** — telemetry, narrowed: installs, scrape success per marketplace, chart open. Clickouts are the app's to count.
@@ -86,7 +95,7 @@ Ordered by leverage.
 **Blocked, with reasons**
 
 - **Item 2** (per-device identity) needs the app to issue credentials. Until then every install shares one token: no per-install limits and no per-user alert data.
-- **Item 1b** (store submission) — the pack is written and the assets exist; only the submission waits on the app answering, plus the two AMO notices (`data_collection_permissions`, `tooltip.innerHTML`). Publishing a handoff funnel that 404s wastes the first review cycle.
+- **Item 1b** (store submission) — the pack is written, the screenshots exist and the AMO blockers are cleared, so the only real question is timing. With the chart local-only (item 11), a new user's first impression is an almost-empty chart. Either ship a read endpoint first, or expect the first reviews to say so; the alternative is softening the listing copy to promise "harga dan tren yang Anda lihat sendiri", which is true but a weaker pitch.
 
 ## 6. Success metrics for the extension
 
@@ -96,6 +105,7 @@ Ordered by leverage.
 
 ## 7. Open questions
 
-1. Does the app support per-device credentials and a batch price read? Items 2 and 8 wait on it.
+1. Does the app support per-device credentials? Item 2 waits on it, and so does anything that needs to tell one install from another.
 2. Does the app's product page attach an affiliate link, and does it count arrivals that came from the extension? If not, item 4's clickout carries no revenue and the handoff needs another destination.
 3. When is the app coming back up? Until then every upload is queued and never delivered, and the recovered `/product/...` route stays unverified.
+4. Can the app expose a product's price history to the extension, and does that history include other users' observations? Item 11 and the store listing's promise both turn on it.
