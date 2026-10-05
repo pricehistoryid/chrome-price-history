@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { scrapeShopeePDP } from '../entrypoints/content/v3/scraper/shopee/pdp';
 import { validateProductData } from '../entrypoints/content/v3/utils/validation';
 
@@ -28,6 +28,14 @@ function ldJson(value: unknown): string {
   return `<script type="application/ld+json">${JSON.stringify(value)}</script>`;
 }
 
+/** The page hydrating its structured data after the first poll. */
+function appendLdJson(value: unknown) {
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.textContent = JSON.stringify(value);
+  document.head.appendChild(script);
+}
+
 function install({ head = '', body = '' }: { head?: string; body?: string } = {}) {
   document.head.innerHTML = head;
   document.body.innerHTML = body;
@@ -36,6 +44,10 @@ function install({ head = '', body = '' }: { head?: string; body?: string } = {}
 beforeEach(() => {
   vi.restoreAllMocks();
   install();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('scrapeShopeePDP', () => {
@@ -111,18 +123,42 @@ describe('scrapeShopeePDP', () => {
     expect(result?.sold).toBe('1200');
   });
 
+  it('waits for structured data that arrives after the initial HTML', async () => {
+    vi.useFakeTimers();
+    install({ body: '<div><span>189</span> Terjual</div>' });
+
+    const pending = scrapeShopeePDP(PRODUCT_URL);
+
+    await vi.advanceTimersByTimeAsync(200); // first poll, nothing yet
+    appendLdJson(rangedProduct);            // the page hydrates
+    await vi.advanceTimersByTimeAsync(200); // next poll finds it
+
+    await expect(pending).resolves.toMatchObject({
+      price: 1600000,
+      name: 'Uji Monitor 24 Inch - Garansi Resmi',
+    });
+  });
+
   it('reports no data rather than guessing when the page has no product', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.useFakeTimers();
     install({ body: '<div>Rp1.600.000 - Rp1.700.000</div>' });
 
-    await expect(scrapeShopeePDP(PRODUCT_URL)).resolves.toBeNull();
+    const pending = scrapeShopeePDP(PRODUCT_URL, { timeoutMs: 300 });
+    await vi.advanceTimersByTimeAsync(400);
+
+    await expect(pending).resolves.toBeNull();
   });
 
   it('reports no data when the product block carries no usable price', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.useFakeTimers();
     install({ head: ldJson({ '@type': 'Product', name: 'Uji Monitor 24 Inch' }) });
 
-    await expect(scrapeShopeePDP(PRODUCT_URL)).resolves.toBeNull();
+    const pending = scrapeShopeePDP(PRODUCT_URL, { timeoutMs: 300 });
+    await vi.advanceTimersByTimeAsync(400);
+
+    await expect(pending).resolves.toBeNull();
   });
 
   it('reports no data when the product block carries no name', async () => {

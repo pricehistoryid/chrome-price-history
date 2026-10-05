@@ -15,6 +15,15 @@ import { ProductData } from '../result';
 const LD_JSON_SELECTOR = 'script[type="application/ld+json"]';
 const TITLE_SUFFIX = /\s*\|\s*Shopee Indonesia\s*$/i;
 
+/**
+ * The page is a React app and its `og:` tags carry react-helmet's `data-rh`
+ * marker, so the structured data can arrive after the initial HTML. The
+ * content script runs at document_end, which is why this waits instead of
+ * reading once.
+ */
+const LD_TIMEOUT_MS = 6000;
+const LD_POLL_MS = 150;
+
 /** `189 Terjual`, and Shopee's abbreviated `1,2RB Terjual` above a thousand. */
 const SOLD_LABEL = /([\d.,]+)\s*(rb|ribu)?\s*terjual/i;
 
@@ -76,21 +85,51 @@ function soldFromDom(): number | null {
   return null;
 }
 
-export async function scrapeShopeePDP(url: string): Promise<ProductData | null> {
+/** A product block that carries a usable price, or null. */
+function productWithPrice(): { product: Json; price: number } | null {
+  for (const product of ldJsonProducts()) {
+    const price = offersPrice(product.offers);
+    if (price !== null) return { product, price };
+  }
+  return null;
+}
+
+/**
+ * Polls until a priced product block shows up, so a client-rendered page is
+ * not mistaken for an unsupported one.
+ */
+function waitForProductWithPrice(timeoutMs: number): Promise<{ product: Json; price: number } | null> {
+  const immediate = productWithPrice();
+  if (immediate) return Promise.resolve(immediate);
+
+  return new Promise((resolve) => {
+    const deadline = Date.now() + timeoutMs;
+    const timer = setInterval(() => {
+      const found = productWithPrice();
+      if (found || Date.now() >= deadline) {
+        clearInterval(timer);
+        resolve(found);
+      }
+    }, LD_POLL_MS);
+  });
+}
+
+export async function scrapeShopeePDP(
+  url: string,
+  { timeoutMs = LD_TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<ProductData | null> {
   try {
-    const product = ldJsonProducts().find((p) => typeof p.name === 'string' || p.offers);
-    if (!product) {
-      console.warn('Shopee product JSON-LD not found, scraping failed');
+    const found = await waitForProductWithPrice(timeoutMs);
+    if (!found) {
+      console.warn(
+        ldJsonProducts().length > 0
+          ? 'Shopee JSON-LD carried no usable price, scraping failed'
+          : 'Shopee product JSON-LD never appeared, scraping failed',
+      );
       return null;
     }
 
-    const price = offersPrice(product.offers);
-    if (price === null) {
-      // Without a price there is nothing worth recording; guessing from the
-      // DOM would risk storing a shipping fee or a struck-through figure.
-      console.warn('Shopee price not found in JSON-LD, scraping failed');
-      return null;
-    }
+    const { product, price } = found;
 
     const name = String(product.name ?? '').trim() || metaContent('og:title').replace(TITLE_SUFFIX, '');
     if (!name) {
