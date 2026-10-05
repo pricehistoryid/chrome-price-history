@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Development builds allow any localhost port for the dev-server websocket and the local dashboard; WXT picks a free port from 3000 to 3010 and a hardcoded `ws://localhost:3000` blocked its HMR socket whenever the dashboard already held that port
 - The retry queue holds 5,000 observations instead of 500, so an API outage no longer evicts a browsing session's worth of prices before they can be delivered
 - Firefox builds declare their data collection to AMO (`websiteActivity`, `websiteContent`) and the chart tooltip builds its text as elements instead of assigning `innerHTML`; addons-linter reports zero errors, warnings and notices
 - The API URL follows the build mode: `pnpm dev` uploads to `http://localhost:3000/api/v1/price` from `.env.development`, `pnpm build` to `https://pricehistory.id/api/v1/price` from `.env.production`
