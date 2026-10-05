@@ -1,11 +1,19 @@
 import { defineConfig } from 'wxt';
 
-// The dashboard on your own machine. Production builds must not ask for
-// access to localhost, so these only land in development manifests.
-// Must cover VITE_API_URL in .env.development, or the background script cannot
-// reach the local API.
+// The dashboard on your own machine, and WXT's dev server. Production builds
+// must not ask for access to localhost, so these only land in development
+// manifests. Must cover VITE_API_URL in .env.development.
 const DEV_ORIGINS = ['http://localhost:3000/*', 'http://localhost:3001/*'];
-const DEV_CONNECT_SRC = 'ws://localhost:3000 http://localhost:3000 http://localhost:3001';
+
+/**
+ * WXT's dev server takes the first free port from 3000 to 3010, and WXT only
+ * adds its own origin to `script-src` — the HMR socket is left to this string.
+ * So development allows any localhost port, rather than guessing one: a
+ * dashboard on 3000 pushes the dev server to 3001, and a hardcoded
+ * `ws://localhost:3000` blocks its websocket.
+ */
+const DEV_CONNECT_SRC = 'ws://localhost:* http://localhost:*';
+const PROD_CONNECT_SRC = 'https://pricehistory.id';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -30,7 +38,10 @@ export default defineConfig({
         extension_pages: [
           "script-src 'self'",
           "object-src 'self'",
-          `connect-src 'self' https://pricehistory.id${isDev ? ` ${DEV_CONNECT_SRC}` : ''}`,
+          // Development keeps the deployed API reachable so an env override can
+          // point at it, on top of localhost for the dev server and the local
+          // dashboard.
+          `connect-src 'self' ${isDev ? `${DEV_CONNECT_SRC} ${PROD_CONNECT_SRC}` : PROD_CONNECT_SRC}`,
         ].join('; '),
       },
       icons: {
