@@ -211,9 +211,14 @@ export class ChartManager {
 
       const priceLength = price.toString().length;
       tooltip.style.width = `${105 + (10 * Math.max(priceLength - 3, 0))}px`;
-      tooltip.innerHTML = `
-        <div style="font-size: 16px; margin: 4px 0px;">${priceCurrency}</div>
-        <div>${this.myDateFormatter(param.time)}</div>`;
+      const priceLine = document.createElement('div');
+      priceLine.style.cssText = 'font-size: 16px; margin: 4px 0px;';
+      priceLine.textContent = priceCurrency;
+
+      const dateLine = document.createElement('div');
+      dateLine.textContent = this.myDateFormatter(param.time);
+
+      tooltip.replaceChildren(priceLine, dateLine);
 
       const coordinate = this.series.priceToCoordinate(price);
       if (coordinate === null) {

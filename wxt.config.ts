@@ -50,11 +50,25 @@ export default defineConfig({
           ]
         }
       ],
-      // Firefox MV3 refuses to install without a stable extension ID. Confirm
-      // this against the AMO listing before submitting; a mismatch creates a
-      // second, empty listing.
+      // Firefox MV3 refuses to install without a stable extension ID — confirm
+      // it against the AMO listing before submitting, since a mismatch creates a
+      // second, empty listing. Since November 2025 AMO requires the
+      // data-collection declaration as well: the extension transmits the product
+      // pages the user views (websiteActivity) and fields read from them
+      // (websiteContent) to pricehistory.id. It collects no technical or usage
+      // data, which is why nothing else is listed. Allowed values verified
+      // against the addons-linter schema rather than the docs.
       ...(env.browser === 'firefox'
-        ? { browser_specific_settings: { gecko: { id: 'pricehistory-id@pricehistory.id' } } }
+        ? {
+            browser_specific_settings: {
+              gecko: {
+                id: 'pricehistory-id@pricehistory.id',
+                data_collection_permissions: {
+                  required: ['websiteActivity', 'websiteContent'],
+                },
+              },
+            },
+          }
         : {})
     };
   },
