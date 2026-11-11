@@ -4,7 +4,7 @@ import { scrapeShopeePDP, watchShopeePrice } from './scraper/shopee/pdp';
 import { scrapeBlibliPDP, watchBlibliPrice } from './scraper/blibli/pdp';
 import { scrapeLazadaPDP, watchLazadaPrice } from './scraper/lazada/pdp';
 import { PriceHistory } from './price-history';
-import { updateProductPrice, updateProductPrices } from './api';
+import { updateProductPrice, updateProductPrices, getProductPriceHistory } from './api';
 import { floatingButton, modal } from './inject';
 import { FloatingButton } from './floating-button';
 import { scrapeWishlist } from './scraper/tokopedia/wishlist';
@@ -200,15 +200,24 @@ async function processScraping(
   switch (result.pageType) {
     case 'pdp': {
       if (!result.result) return;
+      const product = result.result[0];
 
       setupModal(ph);
       pointFooterAtProduct(url);
       resetChart(chart);
       // ponytail: fire-and-forget; the promise chain serializes the storage write
-      void ph.save(result.result[0], chart).catch((error) => {
+      void ph.save(product, chart).catch((error) => {
         console.error('Error saving price history:', error);
       });
-      void updateProductPrice(result.result[0]);
+      void getProductPriceHistory(product.url).then(async (remote) => {
+        if (!await ph.mergeRemote(product.url, remote)) return;
+        if (`${location.origin}${location.pathname}` !== url) return;
+        resetChart(chart);
+        ph.render(chart);
+      }).catch((error) => {
+        console.error('Error merging remote price history:', error);
+      });
+      void updateProductPrice(product);
 
       const watch = result.marketplace ? PRICE_WATCHERS[result.marketplace] : undefined;
       if (watch) {

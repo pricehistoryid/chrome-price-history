@@ -28,10 +28,20 @@ export interface QueuedPrice {
   price: number;
   rating: number;
   sold: number;
+  /**
+   * `YYYY-MM-DD`, the local day the price was seen. Without it a queue that
+   * drains days late is dated by arrival, and that is not recoverable later.
+   * Optional: entries queued before this field existed have no date.
+   */
+  observed_at?: string;
 }
+
+/** Exactly the shape the API accepts; anything else fails the whole batch. */
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 function isQueuedPrice(value: unknown): value is QueuedPrice {
   const candidate = value as Partial<QueuedPrice> | null;
+  const observedAt = candidate?.observed_at;
   return (
     !!candidate &&
     typeof candidate === 'object' &&
@@ -39,7 +49,10 @@ function isQueuedPrice(value: unknown): value is QueuedPrice {
     candidate.url.length > 0 &&
     typeof candidate.name === 'string' &&
     typeof candidate.price === 'number' &&
-    Number.isFinite(candidate.price)
+    Number.isFinite(candidate.price) &&
+    // ponytail: a malformed date is dropped with its entry rather than sent,
+    // because one bad value 400s the entire batch and stalls the queue.
+    (observedAt === undefined || (typeof observedAt === 'string' && ISO_DAY.test(observedAt)))
   );
 }
 

@@ -3,6 +3,7 @@ import {
   MAX_PRICE_POINTS,
   MAX_TRACKED_PRODUCTS,
   PriceHistory,
+  mergePriceHistory,
   migratePriceData,
   prunePriceHistory,
 } from '../entrypoints/content/v3/price-history';
@@ -131,6 +132,74 @@ describe('PriceHistory same-day handling', () => {
     expect(stored.prevPrice).toHaveLength(1);
     expect(stored.prevPrice[0].price).toBe(180);
     expect(stored.lowestPrice.price).toBe(120);
+  });
+});
+
+describe('mergePriceHistory', () => {
+  it('unions days, keeps local prices on collisions, and uses the last remote point for a day', () => {
+    const merged = mergePriceHistory(
+      {
+        prevPrice: [
+          { time: '2026-09-27', price: 120 },
+          { time: '2026-09-26', price: 150 },
+        ],
+        lowestPrice: { time: '2026-08-01', price: 140 },
+      },
+      [
+        { time: '2026-09-25', price: 130 },
+        { time: '2026-09-27', price: 999 },
+        { time: '2026-09-28', price: 125 },
+        { time: '2026-09-28', price: 123 },
+      ],
+    );
+
+    expect(merged).toEqual({
+      prevPrice: [
+        { time: '2026-09-28', price: 123 },
+        { time: '2026-09-27', price: 120 },
+        { time: '2026-09-26', price: 150 },
+        { time: '2026-09-25', price: 130 },
+      ],
+      lowestPrice: { time: '2026-09-27', price: 120 },
+    });
+  });
+
+  it('preserves an older local all-time low outside the chart points', () => {
+    const lowestPrice = { time: '2024-01-01', price: 50 };
+
+    const merged = mergePriceHistory(
+      { prevPrice: [{ time: '2026-09-27', price: 130 }], lowestPrice },
+      [{ time: '2026-09-28', price: 110 }],
+    );
+    expect(merged?.lowestPrice).toEqual(lowestPrice);
+  });
+});
+
+describe('PriceHistory.mergeRemote', () => {
+  it('persists the union and makes it available to the active chart', async () => {
+    const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
+    const chart = { print: vi.fn() };
+    const ph = new PriceHistory();
+    await ph.save({ url, name: 'A', price: 150 }, chart);
+    store.price_history[url] = {
+      prevPrice: [{ time: '2026-09-27', price: 150 }],
+      lowestPrice: { time: '2026-08-01', price: 140 },
+    };
+    chart.print.mockClear();
+
+    expect(await ph.mergeRemote(url, [{ time: '2026-09-25', price: 130 }])).toBe(true);
+
+    const merged = {
+      prevPrice: [
+        { time: '2026-09-27', price: 150 },
+        { time: '2026-09-25', price: 130 },
+      ],
+      lowestPrice: { time: '2026-09-25', price: 130 },
+    };
+    expect(store.price_history[url]).toEqual(merged);
+
+    ph.render(chart);
+    expect(chart.print).toHaveBeenCalledWith(merged);
   });
 });
 

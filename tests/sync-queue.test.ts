@@ -12,6 +12,10 @@ function price(url: string, value = 1000): QueuedPrice {
   return { url, name: 'Product', image_url: '', price: value, rating: 0, sold: 0 };
 }
 
+function dated(url: string, observedAt: string, value = 1000): QueuedPrice {
+  return { ...price(url, value), observed_at: observedAt };
+}
+
 describe('readQueue', () => {
   it('returns nothing for anything that is not an array', () => {
     expect(readQueue(undefined)).toEqual([]);
@@ -21,6 +25,14 @@ describe('readQueue', () => {
 
   it('drops entries that could not be uploaded', () => {
     expect(readQueue([price('a'), { url: 'b' }, null, price('c', NaN)])).toEqual([price('a')]);
+  });
+
+  it('keeps a YYYY-MM-DD day and drops anything else', () => {
+    expect(readQueue([dated('keep', '2026-09-28')]).map((p) => p.observed_at)).toEqual(['2026-09-28']);
+    // Entries queued before the field existed still drain, dated by arrival.
+    expect(readQueue([price('legacy')]).map((p) => p.observed_at)).toEqual([undefined]);
+    // A malformed day 400s the whole batch server-side, so it never leaves the queue.
+    expect(readQueue([dated('a', '2026-9-1'), dated('b', '2026-09-28T00:00:00Z')])).toEqual([]);
   });
 });
 
@@ -34,6 +46,16 @@ describe('mergeIntoQueue', () => {
 
   it('appends new products after the ones already waiting', () => {
     expect(mergeIntoQueue([price('a')], [price('b')]).map((p) => p.url)).toEqual(['a', 'b']);
+  });
+
+  it('carries the day an observation was seen through a merge', () => {
+    const merged = mergeIntoQueue([dated('a', '2026-09-20')], [dated('b', '2026-09-27')]);
+
+    expect(merged).toEqual([dated('a', '2026-09-20'), dated('b', '2026-09-27')]);
+    // Newest entry for a URL wins, with its own day — not the day it drained.
+    expect(mergeIntoQueue([dated('a', '2026-09-20')], [dated('a', '2026-09-28', 3000)])).toEqual([
+      dated('a', '2026-09-28', 3000),
+    ]);
   });
 
   it('treats a missing or malformed queue as empty', () => {

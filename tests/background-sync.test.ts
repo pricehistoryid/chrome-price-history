@@ -9,10 +9,12 @@ type MessageListener = (
 
 interface WorkerHarness {
   send: (payload: unknown) => Promise<any>;
+  readHistory: (url: string) => Promise<any>;
   navigate: (url?: string) => void;
   sentMessages: () => unknown[][];
   postedUrls: () => string[];
   postedBodies: () => Array<Array<{ url: string }>>;
+  historyRequests: () => Array<{ url: string; init: RequestInit }>;
   storedQueue: () => unknown;
 }
 
@@ -27,6 +29,7 @@ function product(url: string) {
 async function loadWorker(
   fetchImpl: () => Promise<unknown>,
   queueOnDisk: unknown = undefined,
+  historyResponse: unknown = { ok: true, json: async () => ({ success: true, data: [] }) },
 ): Promise<WorkerHarness> {
   vi.resetModules();
 
@@ -62,7 +65,8 @@ async function loadWorker(
     },
   };
 
-  const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+  const fetchMock = vi.fn(async (_url: string, init: RequestInit = {}) => {
+    if (init.method === 'GET') return historyResponse as Response;
     const body = JSON.parse(String(init.body));
     await fetchImpl();
     return { ok: true, text: async () => JSON.stringify(body) } as unknown as Response;
@@ -74,11 +78,18 @@ async function loadWorker(
   await import('../entrypoints/background');
 
   return {
-    send: (payload: unknown) =>
-      new Promise((resolve) => {
-        listener?.({ type: 'UPDATE_PRODUCT_PRICE', payload }, {}, resolve);
-        void vi.advanceTimersByTimeAsync(60_000);
-      }),
+    send: (payload: unknown) => {
+      const { promise, resolve } = Promise.withResolvers<any>();
+      listener?.({ type: 'UPDATE_PRODUCT_PRICE', payload }, {}, resolve);
+      void vi.advanceTimersByTimeAsync(60_000);
+      return promise;
+    },
+    readHistory: (url) => {
+      const { promise, resolve } = Promise.withResolvers<any>();
+      const handled = listener?.({ type: 'GET_PRODUCT_PRICE_HISTORY', url }, {}, resolve);
+      if (!handled) resolve(undefined);
+      return promise;
+    },
     navigate: (url?: string) => {
       for (const fn of tabListeners) fn(7, { url }, {});
     },
@@ -86,6 +97,10 @@ async function loadWorker(
     postedUrls: () => fetchMock.mock.calls.map((call) => String(call[0])),
     postedBodies: () =>
       fetchMock.mock.calls.map((call) => JSON.parse(String((call[1] as RequestInit).body))),
+    historyRequests: () =>
+      fetchMock.mock.calls
+        .filter((call) => (call[1] as RequestInit).method === 'GET')
+        .map((call) => ({ url: String(call[0]), init: call[1] as RequestInit })),
     storedQueue: () => queue,
   };
 }
@@ -171,6 +186,44 @@ describe('background price upload', () => {
 });
 
 describe('API endpoint', () => {
+  it('reads validated history using the shared credential and requested product URL', async () => {
+    const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
+    const points = [
+      { time: '2026-09-22', price: 210000 },
+      { time: '2026-09-28', price: 189000 },
+      { time: 'invalid', price: 1 },
+      { time: '2026-09-29', price: Number.NaN },
+      { time: '2026-09-30', price: -1 },
+    ];
+    const worker = await loadWorker(async () => undefined, undefined, {
+      ok: true,
+      json: async () => ({ success: true, data: points }),
+    });
+
+    expect(await worker.readHistory(url)).toEqual({
+      success: true,
+      data: [
+        { time: '2026-09-22', price: 210000 },
+        { time: '2026-09-28', price: 189000 },
+      ],
+    });
+
+    const [request] = worker.historyRequests();
+    const requestUrl = new URL(request.url);
+    expect(requestUrl.pathname).toBe('/api/v1/price');
+    expect(requestUrl.searchParams.get('url')).toBe(url);
+    expect(request.init.method).toBe('GET');
+    expect(new Headers(request.init.headers).get('Authorization')).toBe('Bearer test-token');
+  });
+
+  it('returns no remote history when the endpoint is unavailable', async () => {
+    const worker = await loadWorker(async () => undefined, undefined, { ok: false });
+
+    expect(await worker.readHistory('https://www.tokopedia.com/shop-a/sepatu-abc123')).toEqual({
+      success: false,
+      data: [],
+    });
+  });
   it('uploads to the endpoint the environment provides', async () => {
     const worker = await loadWorker(async () => undefined);
 

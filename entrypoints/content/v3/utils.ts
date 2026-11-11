@@ -23,6 +23,16 @@ export function waitForElement<T extends Element>(
   });
 }
 
+/**
+ * The browser's local calendar day as `YYYY-MM-DD` — the same date the local
+ * price history is keyed by, and the shape the API's `observed_at` expects.
+ */
+export function localDateString(now: Date = new Date()): string {
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split('T')[0];
+}
+
 export function sleep(ms: number): Promise<void> {
   // ponytail: plain Promise + setTimeout. Promise.withResolvers would be
   // shorter, but it is ES2024, and the build ships `esnext` untranspiled to

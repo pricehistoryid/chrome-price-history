@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Each observation carries the local day it was seen (`observed_at`) instead of being dated when it reaches the API, and the retry queue stores that day, so a batch that drains after an outage keeps the date it was collected on; a day that is not exactly `YYYY-MM-DD` never leaves the queue, because one malformed value would 400 the whole batch
+- Product-page charts merge shared API history by date, preferring local prices on collisions; local history remains visible when the read endpoint is unavailable.
 - Product links use the app's own slug — `tokopedia-<shop>-<slug>`, `shopee-<slug>-i-<shopid>-<itemid>` — instead of the `www-<host>-com-…` shape the 2025 sitemap implied, which 404s against the rewritten app. The extension's builder now mirrors the app's `generateProductSlug`, checked by running both over the same URLs
 - Product images are validated instead of taken on faith: Blibli's page defaults (site banners under `/siva/asset/`) and Lazada's store badges (`/tps/`) are skipped in favour of a real catalog photo, Blibli's thumbnail is upgraded to the full-size file, both scan every JSON-LD product block for an image, and an empty image is sent rather than site art
 - Lazada's second image shape is recognised — `//laz-img-sg.alicdn.com/p/…` and `img.lazcdn.com/g/p/…`, protocol-relative included — where only `/kf/` paths were accepted before, so those products shipped without a photo

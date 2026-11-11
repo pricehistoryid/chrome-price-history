@@ -1,5 +1,7 @@
 import { ProductData } from './scraper/result';
 import { validateProductData } from './utils/validation';
+import { localDateString } from './utils';
+import type { PriceData } from './price-history';
 import { batchForUpload, type QueuedPrice } from '../../../shared/sync-queue';
 
 function toPayload(productData: ProductData): QueuedPrice {
@@ -10,7 +12,10 @@ function toPayload(productData: ProductData): QueuedPrice {
     image_url: validatedProduct.imageUrl || '',
     price: parseInt(validatedProduct.price.toString()),
     rating: Number(validatedProduct.rating) || 0,
-    sold: Number(validatedProduct.sold) || 0
+    sold: Number(validatedProduct.sold) || 0,
+    // The day the price was seen, so a batch the API rejects today is still
+    // dated correctly when the retry queue drains it days later.
+    observed_at: localDateString()
   };
 }
 
@@ -69,4 +74,18 @@ export async function updateProductPrices(products: ProductData[]): Promise<void
  */
 export async function updateProductPrice(productData: ProductData): Promise<void> {
   await updateProductPrices([productData]);
+}
+
+/** Reads shared history; unavailable endpoints leave the local chart untouched. */
+export async function getProductPriceHistory(url: string): Promise<PriceData[]> {
+  try {
+    // The background validates the API response before sending it over this internal message boundary.
+    const response = await chrome.runtime.sendMessage({
+      type: 'GET_PRODUCT_PRICE_HISTORY',
+      url,
+    }) as { success?: boolean; data?: unknown } | undefined;
+    return response?.success && Array.isArray(response.data) ? response.data as PriceData[] : [];
+  } catch {
+    return [];
+  }
 }

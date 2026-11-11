@@ -1,3 +1,5 @@
+import { localDateString } from './utils';
+
 interface ProductData {
   url: string;
   name: string;
@@ -65,18 +67,45 @@ export function prunePriceHistory(ph: Record<string, StoredProduct>): Record<str
   );
 }
 
+/** Unions server days with local history; local observations win same-day conflicts. */
+export function mergePriceHistory(
+  local: StoredProduct | undefined,
+  remote: PriceData[],
+): StoredProduct | undefined {
+  if (remote.length === 0) return local;
+
+  const byDate = new Map<string, PriceData>();
+  for (const point of remote) byDate.set(point.time, point);
+  if (local) {
+    for (let i = local.prevPrice.length - 1; i >= 0; i -= 1) {
+      const point = local.prevPrice[i];
+      byDate.set(point.time, point);
+    }
+  }
+
+  const prevPrice = [...byDate.values()]
+    .sort((a, b) => b.time.localeCompare(a.time))
+    .slice(0, MAX_PRICE_POINTS);
+  let lowestPrice = local?.lowestPrice ?? remote[0];
+  for (const point of local?.prevPrice ?? []) {
+    if (point.price < lowestPrice.price) lowestPrice = point;
+  }
+  for (const point of remote) {
+    if (point.price < lowestPrice.price) lowestPrice = point;
+  }
+
+  return { prevPrice, lowestPrice };
+}
+
+
 export class PriceHistory {
-  private tzOffset: number;
   private ph: {
     prevPrice: PriceData[];
     lowestPrice: PriceData;
   } | undefined;
+  private currentUrl: string | undefined;
   // ponytail: serializes the read-modify-write in save()
   private queue: Promise<void> = Promise.resolve();
-
-  constructor() {
-    this.tzOffset = new Date().getTimezoneOffset() * 60000;
-  }
 
   save(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
     // Concurrent saves each read the whole price_history snapshot, so without
@@ -86,11 +115,16 @@ export class PriceHistory {
     return next;
   }
 
+  mergeRemote(url: string, remote: PriceData[]): Promise<boolean> {
+    const next = this.queue.then(() => this.mergeRemoteNow(url, remote));
+    this.queue = next.then(() => undefined, () => undefined);
+    return next;
+  }
+
   private async saveNow(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
     const url = productData.url;
-    const date = new Date(Date.now() - this.tzOffset)
-      .toISOString()
-      .split('T')[0];
+    this.currentUrl = url;
+    const date = localDateString();
 
     const newData: PriceData = {
       time: date,
@@ -140,6 +174,29 @@ export class PriceHistory {
     }
 
     chart.print(this.ph);
+  }
+
+  private async mergeRemoteNow(url: string, remote: PriceData[]): Promise<boolean> {
+    if (remote.length === 0) return false;
+
+    const result = await chrome.storage.local.get(['price_history']);
+    // PriceHistory owns this storage shape; legacy point values are migrated below.
+    const history = (result.price_history ?? {}) as Record<string, StoredProduct>;
+    const currentProduct = history[url];
+    if (!currentProduct) return false;
+
+    const current: StoredProduct = {
+      prevPrice: (currentProduct.prevPrice ?? []).map((point) => migratePriceData(point)),
+      lowestPrice: migratePriceData(currentProduct.lowestPrice),
+    };
+    const merged = mergePriceHistory(current, remote);
+    if (!merged) return false;
+
+    history[url] = merged;
+    await chrome.storage.local.set({ price_history: history });
+    if (this.currentUrl !== url) return false;
+    this.ph = merged;
+    return true;
   }
 
   render(chart: { print: (data: any) => void }): void {

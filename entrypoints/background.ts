@@ -24,6 +24,12 @@ export default defineBackground(() => {
         });
       return true; // Keep the message channel open for async response
     }
+    if (message.type === 'GET_PRODUCT_PRICE_HISTORY') {
+      readProductPriceHistory(message.url)
+        .then(data => sendResponse({ success: true, data }))
+        .catch(() => sendResponse({ success: false, data: [] }));
+      return true;
+    }
   });
 
   chrome.tabs.onUpdated.addListener(
@@ -91,6 +97,40 @@ async function postPrices(batch: QueuedPrice[]): Promise<string> {
   });
 
   return await response.text();
+}
+
+async function readProductPriceHistory(url: unknown): Promise<Array<{ time: string; price: number }>> {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const jwtToken = import.meta.env.VITE_API_JWT_TOKEN;
+  if (!apiUrl || !jwtToken || typeof url !== 'string' || url.length === 0) {
+    throw new Error('Price history read is not configured.');
+  }
+
+  const endpoint = new URL(apiUrl);
+  endpoint.searchParams.set('url', url);
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: new Headers({
+      'Authorization': `Bearer ${jwtToken}`,
+      'Accept': 'application/json',
+    }),
+  });
+  if (!response.ok) throw new Error(`Price history read failed: ${response.status}`);
+
+  const body: unknown = await response.json();
+  if (
+    !body || typeof body !== 'object' ||
+    !('success' in body) || body.success !== true ||
+    !('data' in body) || !Array.isArray(body.data)
+  ) {
+    throw new Error('Invalid price history response.');
+  }
+
+  return body.data.filter((point: unknown): point is { time: string; price: number } => {
+    if (!point || typeof point !== 'object' || !('time' in point) || !('price' in point)) return false;
+    return typeof point.time === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(point.time) &&
+      typeof point.price === 'number' && Number.isInteger(point.price) && point.price >= 0;
+  });
 }
 
 async function enqueuePrices(payload: unknown): Promise<void> {
