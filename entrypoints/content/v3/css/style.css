@@ -20,7 +20,7 @@
   border-right: none;
   box-shadow: -2px 0 10px rgba(0,0,0,0.15);
   cursor: grab;
-  touch-action: none; /* Required for interact.js */
+  touch-action: none; /* Keep touch gestures on the button for pointer dragging. */
   transition: transform 0.2s;
 }
 
@@ -86,45 +86,13 @@
   color: #ef4444;
 }
 
-.tab-container {
-  display: flex;
-  gap: 4px;
-  padding: 6px 12px 0 12px;
+.modal-heading {
+  margin: 0;
+  padding: 16px 24px;
   border-bottom: 1px solid #f3f4f6;
-  background-color: #ffffff;
-}
-
-.tab-btn {
-  padding: 10px 20px;
-  border: none;
-  background: none;
   font-size: 15px;
   font-weight: 600;
-  color: #9ca3af;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s;
-  border-radius: 10px 10px 0 0;
-}
-
-.tab-btn:hover {
-  color: #4b5563;
-  background-color: #f9fafb;
-}
-
-.tab-btn.active {
-  color: #2563eb; /* Distinctive blue */
-}
-
-.tab-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: #2563eb;
-  border-radius: 3px 3px 0 0;
+  color: #2563eb;
 }
 
 .modal-content {
@@ -132,15 +100,6 @@
   padding: 24px 24px 0px 24px;
   overflow-y: auto;
   background-color: #fff;
-}
-
-.tab-pane {
-  display: none;
-  height: 100%;
-}
-
-.tab-pane.active {
-  display: block;
 }
 
 #chart-container {

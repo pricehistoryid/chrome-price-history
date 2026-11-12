@@ -2,11 +2,8 @@ import { createElement } from './utils/dom';
 import { floatingButton } from './floating-button';
 import { SITE_ORIGIN } from '../../../shared/pricehistory-url';
 
-const tabTrends = createElement('button', { class: 'tab-btn active', 'data-tab': 'trends' }, 'Tren');
-const tabContainer = createElement('div', { class: 'tab-container' }, tabTrends);
-
-const chartPane = createElement('div', { class: 'tab-pane active', id: 'chart-container' });
-const modalContent = createElement('div', { class: 'modal-content' }, chartPane);
+const heading = createElement('h2', { class: 'modal-heading' }, 'Tren');
+const modalContent = createElement('div', { class: 'modal-content' }, createElement('div', { id: 'chart-container' }));
 
 const closeBtn = createElement('div', { class: 'ph-modal-close' }, '×');
 
@@ -29,7 +26,7 @@ export const modal = createElement(
     'div',
     { class: 'modal-container' },
     closeBtn,
-    tabContainer,
+    heading,
     modalContent,
     modalFooter,
   ),

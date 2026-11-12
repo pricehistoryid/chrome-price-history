@@ -1,5 +1,5 @@
 import { ProductData } from '../result';
-import { Json, amountsIn, jsonLdNodes, metaContent, waitFor, watchText } from '../page-data';
+import { amountsIn, jsonLdNodes, metaContent, offersPrice, productBlock, waitFor, watchText } from '../page-data';
 
 /**
  * Shopee ships the product as JSON-LD in the server HTML, which is a far
@@ -25,28 +25,6 @@ const SOLD_LABEL = /([\d.,]+)\s*(rb|ribu)?\s*terjual/i;
 const PRICE_SECTION = 'section[aria-live="polite"]';
 const PRICE_TEXT = /^Rp\s?[\d.]+(?:\s*-\s*Rp\s?[\d.]+)?$/;
 const PRICE_DEBOUNCE_MS = 150;
-
-/** The JSON-LD product block, preferring one that names the product. */
-function productBlock(): Json | null {
-  const blocks = jsonLdNodes('Product');
-  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
-    ?? blocks[0]
-    ?? null;
-}
-
-/**
- * `offers` is an AggregateOffer for products with variants (a price range) and
- * a plain Offer otherwise. Only used as a fallback.
- */
-function offersPrice(offers: unknown): number | null {
-  for (const offer of Array.isArray(offers) ? offers : [offers]) {
-    if (!offer || typeof offer !== 'object') continue;
-    const raw = (offer as Json).lowPrice ?? (offer as Json).price;
-    const price = Number(raw);
-    if (Number.isFinite(price) && price > 0) return price;
-  }
-  return null;
-}
 
 /** The element whose whole text is a price or a price range, or ''. */
 function priceTextIn(root: ParentNode): string {

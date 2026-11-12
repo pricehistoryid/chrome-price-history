@@ -14,22 +14,11 @@ beforeAll(() => {
 });
 
 describe('Modal Structure', () => {
-  it('should have a tab-container with one button: Trends', () => {
-    const tabContainer = modal.querySelector('.tab-container');
-    expect(tabContainer).not.toBeNull();
-
-    const buttons = tabContainer?.querySelectorAll('button');
-    expect(buttons?.length).toBe(1);
-    expect(buttons?.[0].getAttribute('data-tab')).toBe('trends');
-  });
-
-  it('should have a content-container with one tab-pane: chart-container', () => {
-    const contentContainer = modal.querySelector('.modal-content');
-    expect(contentContainer).not.toBeNull();
-
-    const panes = contentContainer?.querySelectorAll('.tab-pane');
-    expect(panes?.length).toBe(1);
-    expect(panes?.[0].id).toBe('chart-container');
+  it('shows a static Tren heading and the chart region', () => {
+    const heading = modal.querySelector('h2');
+    expect(heading?.textContent).toBe('Tren');
+    expect(modal.querySelector('.modal-content #chart-container')).not.toBeNull();
+    expect(modal.querySelector('[data-tab], .tab-pane')).toBeNull();
   });
 });
 

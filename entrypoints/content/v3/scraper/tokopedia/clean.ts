@@ -118,37 +118,6 @@ export function safeGetSrc(element: Element | null, selector?: string): string {
 }
 
 /**
- * Safely gets an attribute from an element
- */
-export function safeGetAttribute(element: Element | null, attribute: string, selector?: string): string {
-  try {
-    if (!element) return '';
-    const selected = selector ? element.querySelector(selector) : element;
-    return selected?.getAttribute(attribute)?.trim() ?? '';
-  } catch (error) {
-    console.warn(`Error getting attribute ${attribute}:`, error);
-    return '';
-  }
-}
-
-/**
- * Safely gets innerHTML from an element
- */
-export function safeGetInnerHtml(element: Element | null, selector?: string): string {
-  try {
-    if (!element) return '';
-    if (selector) {
-      const selected = element.querySelector(selector);
-      return selected?.innerHTML?.trim() ?? '';
-    }
-    return element.innerHTML?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting innerHTML:', error);
-    return '';
-  }
-}
-
-/**
  * Extracts product data from a card element (used in wishlist, search, etc.)
  */
 export function extractProductFromCard(

@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- The floating button uses native Pointer Events instead of interactjs, preserving drag position and click behavior while reducing the Chrome and Firefox content-script bundles; the chart modal's single tab is now a heading.
+- Tokopedia selector fallback no longer allocates a strategy registry for each scrape; marketplace JSON-LD product and offer parsing is shared. Unused helpers and development packages were removed.
 - Each observation carries the local day it was seen (`observed_at`) instead of being dated when it reaches the API, and the retry queue stores that day, so a batch that drains after an outage keeps the date it was collected on; a day that is not exactly `YYYY-MM-DD` never leaves the queue, because one malformed value would 400 the whole batch
 - Product-page charts merge shared API history by date, preferring local prices on collisions; local history remains visible when the read endpoint is unavailable.
 - Product links use the app's own slug — `tokopedia-<shop>-<slug>`, `shopee-<slug>-i-<shopid>-<itemid>` — instead of the `www-<host>-com-…` shape the 2025 sitemap implied, which 404s against the rewritten app. The extension's builder now mirrors the app's `generateProductSlug`, checked by running both over the same URLs

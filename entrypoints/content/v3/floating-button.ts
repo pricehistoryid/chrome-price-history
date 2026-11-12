@@ -1,9 +1,8 @@
-import interact from 'interactjs';
 import { createElement } from './utils/dom';
 
 export class FloatingButton {
   private element: HTMLElement;
-  private position = { x: 0, y: 0 };
+  private position = { y: 0 };
   private STORAGE_KEY = 'floating_button_position';
 
   private isDragInitialized = false;
@@ -30,31 +29,58 @@ export class FloatingButton {
     if (this.isDragInitialized) return;
     this.isDragInitialized = true;
 
-    interact(this.element).draggable({
-      modifiers: [
-        interact.modifiers.restrictRect({
-          // CHANGE THIS: 'parent' refers to the full height of the body
-          // 'view' refers to the visible viewport
-          restriction: 'view',
-          endOnly: true,
-        }),
-      ],
-      listeners: {
-        move: (event) => {
-          // Since we are position: fixed, event.dy (delta Y) is
-          // already relative to the screen.
-          this.position.y += event.dy;
-          this.updatePosition();
-          this.element.setAttribute('data-dragged', 'true');
-        },
-        end: () => {
-          this.savePosition();
-          setTimeout(() => {
-            this.element.removeAttribute('data-dragged');
-          }, 100);
-        },
-      },
+    let pointerId: number | null = null;
+    let startY = 0;
+    let startX = 0;
+    let startPosition = 0;
+    let dragged = false;
+    let suppressClick = false;
+
+    this.element.addEventListener('pointerdown', (event) => {
+      if (pointerId !== null || !event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      pointerId = event.pointerId;
+      startY = event.clientY;
+      startX = event.clientX;
+      startPosition = this.position.y;
+      dragged = false;
+      suppressClick = false;
+      this.element.setPointerCapture(event.pointerId);
     });
+
+    this.element.addEventListener('pointermove', (event) => {
+      if (event.pointerId !== pointerId) return;
+      const delta = event.clientY - startY;
+      if (!dragged && Math.hypot(event.clientX - startX, delta) < 4) return;
+      dragged = true;
+      const maxY = Math.max(0, window.innerHeight - this.element.getBoundingClientRect().height);
+      this.position.y = Math.min(maxY, Math.max(0, startPosition + delta));
+      this.updatePosition();
+    });
+
+    const finish = (event: PointerEvent) => {
+      if (event.pointerId !== pointerId) return;
+      pointerId = null;
+      if (event.type === 'pointercancel') {
+        suppressClick = false;
+        if (dragged) {
+          this.position.y = startPosition;
+          this.updatePosition();
+        }
+      } else if (dragged) {
+        suppressClick = true;
+        this.savePosition();
+      }
+      this.element.releasePointerCapture(event.pointerId);
+    };
+    this.element.addEventListener('pointerup', finish);
+    this.element.addEventListener('pointercancel', finish);
+
+    this.element.addEventListener('click', (event) => {
+      if (!suppressClick || event.detail === 0) return;
+      suppressClick = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, { capture: true });
   }
 
   private updatePosition() {
@@ -87,13 +113,7 @@ export class FloatingButton {
   }
 
   public onClick(callback: () => void) {
-    this.element.addEventListener('click', (e) => {
-      // Prevent click if it was a drag
-      if (this.element.getAttribute('data-dragged') === 'true') {
-        return;
-      }
-      callback();
-    });
+    this.element.addEventListener('click', () => callback());
   }
 }
 export const floatingButton = new FloatingButton();

@@ -1,40 +1,119 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatingButton } from '../entrypoints/content/v3/floating-button';
 
-beforeAll(() => {
-  const mockStorage = {
-    get: vi.fn((keys, callback) => callback({})),
-    set: vi.fn(),
-  };
-  (global as any).chrome = {
-    storage: { local: mockStorage },
-    runtime: { getURL: (path: string) => `chrome-extension://test/${path}` },
-  };
-  
-  // Mock window properties
-  (window as any).innerHeight = 800;
+const storage = chrome.storage.local;
+
+function pointer(button: HTMLElement, type: string, clientY: number, pointerId = 1, pointerType = 'mouse', clientX = 0) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.assign(event, { clientX, clientY, pointerId, pointerType, button: 0, isPrimary: true });
+  button.dispatchEvent(event);
+}
+
+function mountedButton() {
+  const floatingButton = new FloatingButton();
+  floatingButton.mount();
+  const button = floatingButton.getElement();
+  button.setPointerCapture = vi.fn();
+  button.releasePointerCapture = vi.fn();
+  button.getBoundingClientRect = vi.fn(() => ({ height: 60 }) as DOMRect);
+  return { floatingButton, button };
+}
+
+beforeEach(() => {
+  document.body.innerHTML = '';
+  vi.clearAllMocks();
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
 });
 
 describe('FloatingButton', () => {
-  it('should handle dragging', () => {
-    const fb = new FloatingButton();
-    fb.mount();
-    const btn = fb.getElement();
-    
-    // Initial position: 800/2 - 30 = 370
-    expect(btn.style.top).toBe('370px');
+  it('mounts at the saved position and does not duplicate drag handlers on remount', () => {
+    vi.mocked(storage.get as (keys: string[], callback: (items: Record<string, unknown>) => void) => void)
+      .mockImplementationOnce((_keys, callback) => callback({ floating_button_position: { y: 100 } }));
+    const { floatingButton, button } = mountedButton();
+    expect(button.style.top).toBe('100px');
+    floatingButton.mount();
+    pointer(button, 'pointerdown', 100);
+    pointer(button, 'pointermove', 140);
+    pointer(button, 'pointerup', 140);
+    expect(button.style.top).toBe('140px');
+    expect(storage.set).toHaveBeenCalledTimes(1);
   });
 
-  it('should maintain position when dragged with scroll', () => {
-    const fb = new FloatingButton();
-    fb.mount();
-    const btn = fb.getElement();
-    
-    // Simulate drag: y += 50
-    (fb as any).position.y += 50;
-    (fb as any).updatePosition();
+  it.each(['mouse', 'touch'])('drags vertically within the viewport with captured %s pointer and saves on release', (pointerType) => {
+    const { button } = mountedButton();
+    pointer(button, 'pointerdown', 400, 7, pointerType);
+    expect(button.setPointerCapture).toHaveBeenCalledWith(7);
+    pointer(button, 'pointermove', 1200, 7, pointerType);
+    expect(button.style.top).toBe('740px');
+    pointer(button, 'pointerup', 1200, 7, pointerType);
+    expect(storage.set).toHaveBeenCalledWith({ floating_button_position: { y: 740 } });
+    expect(button.releasePointerCapture).toHaveBeenCalledWith(7);
+  });
 
-    expect(btn.style.top).toBe('420px');
+  it('ignores another pointer and clamps the top of the viewport', () => {
+    const { button } = mountedButton();
+    pointer(button, 'pointerdown', 400);
+    pointer(button, 'pointermove', 0, 2);
+    expect(button.style.top).toBe('370px');
+    pointer(button, 'pointermove', -100);
+    expect(button.style.top).toBe('0px');
+    pointer(button, 'pointerup', -100);
+    expect(storage.set).toHaveBeenCalledWith({ floating_button_position: { y: 0 } });
+  });
+
+  it('suppresses the click after dragging but permits the next click', () => {
+    const { floatingButton, button } = mountedButton();
+    const onClick = vi.fn();
+    floatingButton.onClick(onClick);
+    pointer(button, 'pointerdown', 400);
+    pointer(button, 'pointermove', 450);
+    pointer(button, 'pointerup', 450);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(onClick).not.toHaveBeenCalled();
+    pointer(button, 'pointerdown', 450);
+    pointer(button, 'pointerup', 450);
+    button.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(storage.set).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not activate after a horizontal drag with no vertical movement', () => {
+    const { floatingButton, button } = mountedButton();
+    const onClick = vi.fn();
+    floatingButton.onClick(onClick);
+    pointer(button, 'pointerdown', 400, 1, 'mouse', 100);
+    pointer(button, 'pointermove', 400, 1, 'mouse', 140);
+    pointer(button, 'pointerup', 400, 1, 'mouse', 140);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    expect(onClick).not.toHaveBeenCalled();
+    expect(storage.set).toHaveBeenCalledWith({ floating_button_position: { y: 370 } });
+  });
+
+  it('allows a click without movement and ignores movement after cancellation', () => {
+    const { floatingButton, button } = mountedButton();
+    const onClick = vi.fn();
+    floatingButton.onClick(onClick);
+    pointer(button, 'pointerdown', 400, 1, 'touch');
+    pointer(button, 'pointercancel', 400, 1, 'touch');
+    pointer(button, 'pointermove', 600, 1, 'touch');
+    expect(button.style.top).toBe('370px');
+    expect(storage.set).not.toHaveBeenCalled();
+    button.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+  it('reverts a canceled drag without saving and allows the next keyboard activation', () => {
+    const { floatingButton, button } = mountedButton();
+    const onClick = vi.fn();
+    floatingButton.onClick(onClick);
+    pointer(button, 'pointerdown', 400, 1, 'touch');
+    pointer(button, 'pointermove', 480, 1, 'touch');
+    expect(button.style.top).toBe('450px');
+    pointer(button, 'pointercancel', 480, 1, 'touch');
+    pointer(button, 'pointermove', 600, 1, 'touch');
+    expect(button.style.top).toBe('370px');
+    expect(storage.set).not.toHaveBeenCalled();
+    button.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
 

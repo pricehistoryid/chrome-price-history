@@ -1,5 +1,5 @@
 import { ProductData } from '../result';
-import { Json, amountFrom, httpsUrl, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
+import { amountFrom, httpsUrl, jsonLdNodes, metaContent, offersPrice, productBlock, textOf, waitFor, watchText } from '../page-data';
 
 /**
  * Blibli publishes JSON-LD, but its `offers` is the *promo* range: a captured
@@ -44,25 +44,6 @@ function productImageUrl(): string {
 }
 
 const LD_TIMEOUT_MS = 6000;
-
-/** The JSON-LD product block, preferring one that names the product. */
-function productBlock(): Json | null {
-  const blocks = jsonLdNodes('Product');
-  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
-    ?? blocks[0]
-    ?? null;
-}
-
-/** `offers` is an AggregateOffer here; only a fallback for the DOM price. */
-function offersPrice(offers: unknown): number | null {
-  for (const offer of Array.isArray(offers) ? offers : [offers]) {
-    if (!offer || typeof offer !== 'object') continue;
-    const raw = (offer as Json).lowPrice ?? (offer as Json).price;
-    const price = Number(raw);
-    if (Number.isFinite(price) && price > 0) return price;
-  }
-  return null;
-}
 
 function visiblePrice(): number | null {
   return amountFrom(textOf(PRICE_SELECTOR));

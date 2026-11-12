@@ -33,6 +33,25 @@ export function jsonLdNodes(type: string): Json[] {
   return nodes;
 }
 
+/** Prefer a named Product block, but retain the first block when none is named. */
+export function productBlock(): Json | null {
+  const blocks = jsonLdNodes('Product');
+  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
+    ?? blocks[0]
+    ?? null;
+}
+
+/** A JSON-LD offer price is only a fallback to the buyer's visible price. */
+export function offersPrice(offers: unknown): number | null {
+  for (const offer of Array.isArray(offers) ? offers : [offers]) {
+    if (!offer || typeof offer !== 'object') continue;
+    const raw = (offer as Json).lowPrice ?? (offer as Json).price;
+    const price = Number(raw);
+    if (Number.isFinite(price) && price > 0) return price;
+  }
+  return null;
+}
+
 export function metaContent(property: string): string {
   const el = document.querySelector<HTMLMetaElement>(`meta[property="${property}"]`);
   return el?.content?.trim() ?? '';

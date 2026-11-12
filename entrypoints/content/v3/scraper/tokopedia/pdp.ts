@@ -7,19 +7,18 @@ import {
   safeGetChildNodeText,
   TOKOPEDIA_SELECTORS
 } from './clean';
-import { FallbackRegistry } from '../fallback';
+import { extractWithFallback } from '../fallback';
 
 export async function scrapePDP(url: string): Promise<ProductData | null> {
-  const fallback = new FallbackRegistry();
   const selectors = TOKOPEDIA_SELECTORS.PDP;
 
   try {
     // ponytail: waitForElement already times out; 2s matches the pre-race effective timeout
     await waitForElement<HTMLDivElement>(selectors.container, 2000);
 
-    // Try multiple selectors for name via fallback registry
-    const name = fallback.execute(selectors.name) ||
-                 fallback.execute('h1') || '';
+    // Try multiple selectors for name via fallback extraction
+    const name = extractWithFallback(selectors.name) ||
+                 extractWithFallback('h1') || '';
 
     // Use robust selectors with fallbacks
     const priceEl = document.querySelector(selectors.price) || document.querySelector('.price');

@@ -1,5 +1,5 @@
 import { ProductData } from '../result';
-import { Json, amountFrom, httpsUrl, jsonLdNodes, metaContent, textOf, waitFor, watchText } from '../page-data';
+import { amountFrom, httpsUrl, jsonLdNodes, metaContent, productBlock, textOf, waitFor, watchText } from '../page-data';
 
 /**
  * Lazada's JSON-LD carries identity only — its `offers` has a url, seller and
@@ -51,14 +51,6 @@ function productImageUrl(): string {
 }
 
 const LD_TIMEOUT_MS = 6000;
-
-/** The JSON-LD product block, preferring one that names the product. */
-function productBlock(): Json | null {
-  const blocks = jsonLdNodes('Product');
-  return blocks.find((block) => typeof block.name === 'string' && block.name.trim() !== '')
-    ?? blocks[0]
-    ?? null;
-}
 
 function visiblePrice(): number | null {
   return amountFrom(textOf(PRICE_SELECTOR));

@@ -288,13 +288,6 @@ export class ChartManager {
     return this.chart !== null;
   }
 
-  /**
-   * Gets chart container element
-   */
-  getContainer(): HTMLElement | null {
-    return document.getElementById(this.containerId);
-  }
-
   print(ph: PriceHistory) {
     try {
       // Validate input data

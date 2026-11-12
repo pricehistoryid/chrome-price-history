@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { amountFrom, amountsIn, jsonLdNodes, textOf, waitFor, watchText } from '../entrypoints/content/v3/scraper/page-data';
+import { amountFrom, amountsIn, jsonLdNodes, offersPrice, productBlock, textOf, waitFor, watchText } from '../entrypoints/content/v3/scraper/page-data';
 
 beforeEach(() => {
   document.head.innerHTML = '';
@@ -36,6 +36,25 @@ describe('jsonLdNodes', () => {
       <script type="application/ld+json">[{"@type":"Product","name":"A"},{"@type":"Product","name":"B"}]</script>`;
 
     expect(jsonLdNodes('Product').map((node) => node.name)).toEqual(['A', 'B']);
+  });
+});
+
+describe('productBlock', () => {
+  it('prefers a named Product block and otherwise uses the first', () => {
+    document.head.innerHTML = `<script type="application/ld+json">[{"@type":"Product","name":"  "},{"@type":"Product","name":"Named"}]</script>`;
+    expect(productBlock()?.name).toBe('Named');
+    document.head.innerHTML = `<script type="application/ld+json">{"@type":"Product","name":"  "}</script>`;
+    expect(productBlock()?.name).toBe('  ');
+    document.head.innerHTML = '';
+    expect(productBlock()).toBeNull();
+  });
+});
+
+describe('offersPrice', () => {
+  it('takes the first valid lowPrice or price, ignoring invalid offers', () => {
+    expect(offersPrice([null, { lowPrice: 0, price: 200000 }, { price: '185000' }])).toBe(185000);
+    expect(offersPrice({ lowPrice: '190000', price: 200000 })).toBe(190000);
+    expect(offersPrice({ price: 'invalid' })).toBeNull();
   });
 });
 

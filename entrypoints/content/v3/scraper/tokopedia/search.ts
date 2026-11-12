@@ -2,7 +2,7 @@ import { sleep, waitForElement } from '../../utils';
 import { ProductData } from '../result';
 import { cleanPrice, safeGetHref, TOKOPEDIA_SELECTORS } from './clean';
 import { updateProductPrices } from '../../api';
-import { FallbackRegistry } from '../fallback';
+import { extractWithFallback } from '../fallback';
 
 /**
  * Cache for processed product URLs to avoid duplicate API calls during search session
@@ -60,16 +60,15 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Safely processes a single search result element using FallbackRegistry and heuristics
+ * Safely processes a single search result element using selector fallback and heuristics
  * ponytail: sync card parse; the caller resolves the lazy image
  */
 function parseCard(product: Element, imageUrl: string): ProductData | null {
-  const fallback = new FallbackRegistry();
   const selectors = TOKOPEDIA_SELECTORS.SEARCH;
 
   try {
-    const name = fallback.execute(selectors.name, product);
-    const priceText = fallback.execute(selectors.price, product);
+    const name = extractWithFallback(selectors.name, product);
+    const priceText = extractWithFallback(selectors.price, product);
     if (!name || !priceText) return null;
 
     const result: ProductData = {
@@ -77,8 +76,8 @@ function parseCard(product: Element, imageUrl: string): ProductData | null {
       name: name.substring(0, 500),
       price: cleanPrice(priceText),
       imageUrl,
-      rating: fallback.execute(selectors.rating, product),
-      sold: fallback.execute(selectors.sold, product)
+      rating: extractWithFallback(selectors.rating, product),
+      sold: extractWithFallback(selectors.sold, product)
     };
 
     // Validate required fields
