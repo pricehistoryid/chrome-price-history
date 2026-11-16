@@ -39,6 +39,15 @@ describe('FloatingButton', () => {
     expect(storage.set).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a saved launcher reachable when the viewport shrinks', () => {
+    vi.mocked(storage.get as (keys: string[], callback: (items: Record<string, unknown>) => void) => void)
+      .mockImplementationOnce((_keys, callback) => callback({ floating_button_position: { y: 700 } }));
+    const { button } = mountedButton();
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 });
+    window.dispatchEvent(new Event('resize'));
+    expect(parseInt(button.style.top, 10)).toBeLessThanOrEqual(352);
+  });
+
   it.each(['mouse', 'touch'])('drags vertically within the viewport with captured %s pointer and saves on release', (pointerType) => {
     const { button } = mountedButton();
     pointer(button, 'pointerdown', 400, 7, pointerType);
@@ -54,7 +63,7 @@ describe('FloatingButton', () => {
     const { button } = mountedButton();
     pointer(button, 'pointerdown', 400);
     pointer(button, 'pointermove', 0, 2);
-    expect(button.style.top).toBe('370px');
+    expect(button.style.top).toBe('160px');
     pointer(button, 'pointermove', -100);
     expect(button.style.top).toBe('0px');
     pointer(button, 'pointerup', -100);
@@ -86,7 +95,7 @@ describe('FloatingButton', () => {
     pointer(button, 'pointerup', 400, 1, 'mouse', 140);
     button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
     expect(onClick).not.toHaveBeenCalled();
-    expect(storage.set).toHaveBeenCalledWith({ floating_button_position: { y: 370 } });
+    expect(storage.set).toHaveBeenCalledWith({ floating_button_position: { y: 160 } });
   });
 
   it('allows a click without movement and ignores movement after cancellation', () => {
@@ -96,7 +105,7 @@ describe('FloatingButton', () => {
     pointer(button, 'pointerdown', 400, 1, 'touch');
     pointer(button, 'pointercancel', 400, 1, 'touch');
     pointer(button, 'pointermove', 600, 1, 'touch');
-    expect(button.style.top).toBe('370px');
+    expect(button.style.top).toBe('160px');
     expect(storage.set).not.toHaveBeenCalled();
     button.click();
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -107,10 +116,10 @@ describe('FloatingButton', () => {
     floatingButton.onClick(onClick);
     pointer(button, 'pointerdown', 400, 1, 'touch');
     pointer(button, 'pointermove', 480, 1, 'touch');
-    expect(button.style.top).toBe('450px');
+    expect(button.style.top).toBe('240px');
     pointer(button, 'pointercancel', 480, 1, 'touch');
     pointer(button, 'pointermove', 600, 1, 'touch');
-    expect(button.style.top).toBe('370px');
+    expect(button.style.top).toBe('160px');
     expect(storage.set).not.toHaveBeenCalled();
     button.click();
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -124,5 +133,11 @@ describe('FloatingButton mark', () => {
 
     expect(btn.style.backgroundImage).toContain('chrome-extension://test/icon/128.png');
     expect(btn.style.backgroundImage).not.toContain('http');
+  });
+
+  it('opens price history without a visible text label while retaining its accessible name', () => {
+    const button = new FloatingButton().getElement();
+    expect(button.getAttribute('aria-label')).toMatch(/riwayat harga/i);
+    expect(button.textContent).toBe('');
   });
 });

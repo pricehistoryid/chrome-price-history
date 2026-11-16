@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- The popup keeps the emerald-to-teal signature in a narrow header accent, moves the price summary onto a quiet neutral ground, and lets oversized price changes wrap instead of colliding; its dashboard target is at least 44px tall.
+- The popup now hides inactive price states, identifies the tracked tab, gives recovery steps when history is unavailable, and improves button contrast plus supporting-text legibility.
+- The chart modal separates current and lowest prices into scannable figures, shows a reduced-motion-aware loading placeholder, and recovers a first-draw failure on the next frame; local history still opens when the price API is unavailable.
+- The product-page price chart now has a named keyboard-accessible dialog, responsive chart sizing, visible loading/empty/error states, and a product-aware latest/lowest summary. Its draggable icon-only launcher has an accessible name, gives motion feedback on hover and press, and defaults near the top of the viewport to reduce overlap with purchase controls.
 - Zero-priced or unreadable products are skipped before upload, and stale zero-priced retry entries are discarded so they cannot cause the API to reject an entire batch.
 - Tokopedia product pages use their `product:price:amount` metadata when the visible price has not rendered; pages with no usable price are not scraped or uploaded.
 - The floating button uses native Pointer Events instead of interactjs, preserving drag position and click behavior while reducing the Chrome and Firefox content-script bundles; the chart modal's single tab is now a heading.

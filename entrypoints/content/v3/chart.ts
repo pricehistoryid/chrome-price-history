@@ -24,7 +24,7 @@ export class ChartManager {
   private series!: ISeriesApi<'Line'>;
   private containerId: string;
 
-  private currentLocale = window.navigator.languages[0];
+  private currentLocale = 'id-ID';
   private myPriceFormatter = new Intl.NumberFormat(this.currentLocale, {
     style: 'currency',
     currency: 'IDR',
@@ -43,10 +43,9 @@ export class ChartManager {
   };
 
   private chartOptions = {
-    width: 600,
-    height: 300,
+    autoSize: true,
     layout: {
-      textColor: 'black',
+      textColor: '#1f2937',
       background: { type: ColorType.Solid, color: 'white' }
     }
   };
@@ -58,7 +57,7 @@ export class ChartManager {
   };
 
   private lowestPriceLine = {
-    title: 'lowest',
+    title: 'Terendah',
     color: '#D7191C',
     lineStyle: LineStyle.Dashed,
     lineWidth: 1.5 as LineWidth,
@@ -67,7 +66,7 @@ export class ChartManager {
   };
 
   private averagePriceLine = {
-    title: 'average',
+    title: 'Rata-rata',
     color: '#FDAE61',
     lineStyle: LineStyle.Dashed,
     lineWidth: 1.5 as LineWidth,
@@ -149,13 +148,13 @@ export class ChartManager {
 
   addLowestPrice(data: PriceData) {
     if (!this.series) return;
-    this.series.createPriceLine({ ...this.lowestPriceLine, price: data.price });
+    this.series.createPriceLine({ ...this.lowestPriceLine, axisLabelVisible: (document.getElementById(this.containerId)?.clientWidth ?? 0) >= 300, price: data.price });
   }
 
   addAveragePrice(data: PriceData[]) {
     if (!this.series || data.length === 0) return;
     const avg = data.reduce((sum, d) => sum + d.price, 0) / data.length;
-    this.series.createPriceLine({ ...this.averagePriceLine, price: avg });
+    this.series.createPriceLine({ ...this.averagePriceLine, axisLabelVisible: (document.getElementById(this.containerId)?.clientWidth ?? 0) >= 300, price: avg });
   }
 
   trackingtooltip() {
@@ -288,38 +287,57 @@ export class ChartManager {
     return this.chart !== null;
   }
 
-  print(ph: PriceHistory) {
+  print(ph: PriceHistory, retry = true) {
+    const container = document.getElementById(this.containerId);
+    const content = container?.parentElement;
+    const status = document.getElementById('price-history-status');
+    const summary = document.getElementById('price-history-summary');
+    const dialog = container?.closest<HTMLElement>('#price-history-modal');
+    const visible = !dialog || dialog.style.display === 'block';
+    if (!ph?.prevPrice?.length) {
+      this.clear();
+      if (container) container.hidden = true;
+      if (summary) summary.hidden = true;
+      if (status) status.textContent = 'Belum ada riwayat harga untuk produk ini.';
+      content?.removeAttribute('data-loading');
+      return;
+    }
+
     try {
-      // Validate input data
-      if (!ph || !ph.prevPrice || !Array.isArray(ph.prevPrice)) {
-        throw new Error('Invalid price history data');
+      if (summary) {
+        const current = summary.querySelector('#price-current');
+        const lowest = summary.querySelector('#price-lowest');
+        if (current) current.textContent = this.myPriceFormatter(ph.prevPrice[0].price);
+        if (lowest) lowest.textContent = this.myPriceFormatter(ph.lowestPrice.price);
+        summary.hidden = false;
       }
-
-      if (ph.prevPrice.length === 0) {
-        throw new Error('No price data to display');
-      }
-
-      // Ensure chart is initialized
-      if (!this.chart) {
-        this.init();
-      }
-
+      if (!visible) return;
+      if (container) container.hidden = false;
+      if (!this.chart) this.init();
       this.addData(ph.prevPrice);
       this.addLowestPrice(ph.lowestPrice);
       this.addAveragePrice(ph.prevPrice);
       this.trackingtooltip();
       this.finalization();
-
-      // console.log('ChartManager: Chart rendered successfully');
+      if (status) status.textContent = ph.prevPrice.length === 1 ? 'Baru satu harga tercatat. Perubahan harga akan muncul di grafik setelah pengamatan berikutnya.' : '';
+      content?.removeAttribute('data-loading');
     } catch (error) {
-      console.error('ChartManager print error:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        data: ph ? { hasPrevPrice: !!ph.prevPrice, dataLength: ph.prevPrice?.length } : 'No data',
-        timestamp: new Date().toISOString()
-      });
-
-      // Try to cleanup on error
+      console.error('ChartManager print error:', error);
       this.clear();
+      if (container) container.hidden = true;
+      if (retry && dialog?.style.display === 'block') {
+        content?.setAttribute('data-loading', 'true');
+        if (status) status.textContent = 'Memuat grafik harga…';
+        const productUrl = dialog.dataset.productUrl;
+        requestAnimationFrame(() => {
+          if (dialog.isConnected && dialog.style.display === 'block' && dialog.dataset.productUrl === productUrl && !this.chart) {
+            this.print(ph, false);
+          }
+        });
+        return;
+      }
+      content?.removeAttribute('data-loading');
+      if (status) status.textContent = 'Grafik harga tidak dapat ditampilkan. Harga terakhir tetap terlihat di atas. Muat ulang halaman untuk mencoba lagi.';
     }
   }
 }

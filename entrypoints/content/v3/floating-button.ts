@@ -16,6 +16,8 @@ export class FloatingButton {
     const button = createElement('button', {
       class: 'ph-floating-btn',
       id: 'ph-floating-btn',
+      type: 'button',
+      'aria-label': 'Buka riwayat harga',
     });
 
     // The button's mark ships with the extension and is exposed to these hosts
@@ -96,15 +98,23 @@ export class FloatingButton {
       if (result[this.STORAGE_KEY]) {
         this.position.y = result[this.STORAGE_KEY].y;
       } else {
-        // Default to middle of the screen
-        this.position.y = (window.innerHeight / 2) - 30;
+        // Start away from the common purchase controls near the page bottom.
+        this.position.y = window.innerHeight * 0.2;
       }
+      this.position.y = Math.max(0, Math.min(this.position.y, window.innerHeight - 56));
       this.updatePosition();
     });
   }
 
   public mount(container: HTMLElement = document.body) {
     container.appendChild(this.element);
+    if (!this.isDragInitialized) {
+      window.addEventListener('resize', () => {
+        if (!this.element.isConnected) return;
+        this.position.y = Math.max(0, Math.min(this.position.y, window.innerHeight - this.element.getBoundingClientRect().height));
+        this.updatePosition();
+      });
+    }
     this.initDrag();
   }
 

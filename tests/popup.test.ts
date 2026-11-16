@@ -14,8 +14,8 @@ function visibleState(): string | undefined {
   return states.filter(el => !el.hidden).map(el => el.dataset.state)[0];
 }
 
-function setActiveTab(url: string) {
-  (global as any).chrome.tabs = { query: vi.fn(async () => [{ url }]) };
+function setActiveTab(url: string, title?: string) {
+  (global as any).chrome.tabs = { query: vi.fn(async () => [{ url, title }]) };
   (global as any).chrome.storage.local.get = vi.fn(async () => ({}));
 }
 
@@ -40,7 +40,6 @@ describe('popup states', () => {
     await render();
     expect(visibleState()).toBe('unsupported');
   });
-
   it('reports a page that has no price to track', async () => {
     setActiveTab('https://www.tokopedia.com/');
     await render();
@@ -126,6 +125,19 @@ describe('popup tracked product', () => {
     // Copy is localized, so assert the parts that carry meaning, not the wording.
     expect(fieldText('records')).toContain('2');
     expect(fieldText('records')).toContain('2026');
+  });
+
+  it('identifies the tracked product without requiring recall of the tab', async () => {
+    setActiveTab('https://www.tokopedia.com/shop-a/sepatu-abc123', 'Sepatu Lari Harian - Tokopedia');
+    setStoredRecord(trackedRecord);
+    await render();
+    expect(document.querySelector('[data-field="product-name"]')?.textContent).toBe('Sepatu Lari Harian - Tokopedia');
+  });
+
+  it('uses the marketplace when the tab title is unavailable', async () => {
+    setStoredRecord(trackedRecord);
+    await render();
+    expect(document.querySelector('[data-field="product-name"]')?.textContent).toMatch(/Tokopedia/);
   });
 
   it('shows a rise with its own class and no minus sign', async () => {

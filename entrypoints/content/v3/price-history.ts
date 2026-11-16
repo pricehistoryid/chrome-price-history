@@ -123,6 +123,7 @@ export class PriceHistory {
 
   private async saveNow(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
     const url = productData.url;
+    if (this.currentUrl !== url) this.ph = undefined;
     this.currentUrl = url;
     const date = localDateString();
 
@@ -199,8 +200,8 @@ export class PriceHistory {
     return true;
   }
 
-  render(chart: { print: (data: any) => void }): void {
-    if (this.ph) {
+  render(chart: { print: (data: any) => void }, expectedUrl?: string): void {
+    if (this.ph && (!expectedUrl || this.currentUrl === expectedUrl)) {
       chart.print(this.ph);
     }
   }

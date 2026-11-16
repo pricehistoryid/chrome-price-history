@@ -49,40 +49,56 @@ const chart = new ChartManager('chart-container');
 window.priceHistoryParam = { chart }; // Make accessible globally if needed
 
 function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: PriceHistory) {
-  // Show modal
+  const trigger = btn.getElement();
+  let obscured: Element[] = [];
+  const close = () => {
+    if (modal.style.display !== 'block') return;
+    modal.style.display = 'none';
+    for (const element of obscured) element.removeAttribute('inert');
+    obscured = [];
+    window.priceHistoryParam.chart.clear();
+    trigger.focus();
+  };
+
   btn.onClick(() => {
-    if (modal) {
-      modal.style.display = 'block';
-      if (!window.priceHistoryParam.chart.isInitialized()) {
-        resetChart(window.priceHistoryParam.chart);
-        ph.render(window.priceHistoryParam.chart);
-      }
+    modal.style.display = 'block';
+    obscured = Array.from(document.body.children).filter((element) => element !== modal && !element.hasAttribute('inert'));
+    for (const element of obscured) element.setAttribute('inert', '');
+    modal.querySelector<HTMLButtonElement>('.ph-modal-close')?.focus();
+    if (!window.priceHistoryParam.chart.isInitialized()) {
+      modal.querySelector('.modal-content')?.setAttribute('data-loading', 'true');
+      const status = modal.querySelector<HTMLElement>('#price-history-status');
+      if (status) status.textContent = 'Memuat riwayat harga…';
+      window.priceHistoryParam.chart.clear();
+      ph.render(window.priceHistoryParam.chart, modal.dataset.productUrl);
     }
   });
 
-  // Close modal on outside click and cleanup
   window.addEventListener('click', (event) => {
-    if (event.target === modal) {
-      if (modal) {
-        modal.style.display = 'none';
-        // Clean up chart when modal closes
-        if (window.priceHistoryParam?.chart) {
-          window.priceHistoryParam.chart.clear();
-        }
-      }
-    }
+    if (event.target === modal) close();
   });
 
-  // Handle escape key to close modal and cleanup
   const handleEscapeKey = (event: KeyboardEvent) => {
-    if (event.key === 'Escape' && modal.style.display === 'block') {
-      modal.style.display = 'none';
-      if (window.priceHistoryParam?.chart) {
-        window.priceHistoryParam.chart.clear();
+    if (modal.style.display !== 'block') return;
+    if (event.key === 'Escape') close();
+    if (event.key === 'Tab' && !modal.contains(document.activeElement)) {
+      event.preventDefault();
+      modal.querySelector<HTMLButtonElement>('.ph-modal-close')?.focus();
+      return;
+    }
+    if (event.key === 'Tab') {
+      const controls = Array.from(modal.querySelectorAll<HTMLElement>('button, a[href]'));
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
   };
-
   window.addEventListener('keydown', handleEscapeKey);
 
   // Cleanup on page unload
@@ -99,6 +115,8 @@ function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: Pric
   const observer = new MutationObserver(() => {
     // Check if modal is still in DOM
     if (!document.contains(modal)) {
+      for (const element of obscured) element.removeAttribute('inert');
+      obscured = [];
       handlePageUnload();
       observer.disconnect();
     }
@@ -109,17 +127,14 @@ function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: Pric
     subtree: true,
   });
 
-  setupTabListeners(modal);
+  setupTabListeners(modal, close);
 }
 
-export function setupTabListeners(modal: HTMLElement) {
-  const closeBtn = modal.querySelector('.ph-modal-close');
-
-  closeBtn?.addEventListener('click', () => {
+export function setupTabListeners(modal: HTMLElement, onClose?: () => void) {
+  modal.querySelector('.ph-modal-close')?.addEventListener('click', () => {
+    if (onClose) return onClose();
     modal.style.display = 'none';
-    if (window.priceHistoryParam?.chart) {
-      window.priceHistoryParam.chart.clear();
-    }
+    window.priceHistoryParam?.chart?.clear();
   });
 }
 
@@ -172,14 +187,6 @@ function teardownModal() {
   modal.remove();
 }
 
-function resetChart(chart: ChartManager) {
-  try {
-    chart.clear();
-  } catch (error) {
-    console.error('Error clearing chart:', error);
-  }
-  chart.init();
-}
 
 /** Selecting a variant changes no URL, so the page itself has to be watched. */
 let priceWatcher: (() => void) | null = null;
@@ -201,19 +208,35 @@ async function processScraping(
     case 'pdp': {
       if (!result.result) return;
       const product = result.result[0];
+      modal.dataset.productUrl = product.url;
 
       setupModal(ph);
       pointFooterAtProduct(url);
-      resetChart(chart);
+      const name = modal.querySelector<HTMLElement>('#price-history-product');
+      if (name) name.textContent = product.name;
+      const summary = modal.querySelector<HTMLElement>('#price-history-summary');
+      if (summary) summary.hidden = true;
+      const chartRegion = modal.querySelector<HTMLElement>('#chart-container');
+      if (chartRegion) chartRegion.hidden = true;
+      modal.querySelector('.modal-content')?.setAttribute('data-loading', 'true');
+      const status = modal.querySelector<HTMLElement>('#price-history-status');
+      if (status) status.textContent = 'Memuat riwayat harga…';
+      chart.clear();
       // ponytail: fire-and-forget; the promise chain serializes the storage write
-      void ph.save(product, chart).catch((error) => {
+      void ph.save(product, { print: (history) => {
+        if (modal.dataset.productUrl === product.url) chart.print(history);
+      } }).catch((error) => {
         console.error('Error saving price history:', error);
+        if (modal.dataset.productUrl !== product.url) return;
+        modal.querySelector('.modal-content')?.removeAttribute('data-loading');
+        const status = modal.querySelector<HTMLElement>('#price-history-status');
+        if (status) status.textContent = 'Riwayat harga tidak dapat disimpan. Muat ulang halaman untuk mencoba lagi.';
       });
       void getProductPriceHistory(product.url).then(async (remote) => {
         if (!await ph.mergeRemote(product.url, remote)) return;
         if (`${location.origin}${location.pathname}` !== url) return;
-        resetChart(chart);
-        ph.render(chart);
+        chart.clear();
+        ph.render(chart, product.url);
       }).catch((error) => {
         console.error('Error merging remote price history:', error);
       });

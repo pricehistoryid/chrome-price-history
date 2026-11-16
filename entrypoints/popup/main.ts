@@ -92,6 +92,7 @@ export async function render(): Promise<void> {
       return;
     }
 
+    setField('product-name', tab?.title?.trim() || `Produk di ${page.marketplace[0].toUpperCase()}${page.marketplace.slice(1)}`);
     setField('current', formatIDR(summary.current.price));
     setField('lowest', formatIDR(summary.lowest.price));
     setField(

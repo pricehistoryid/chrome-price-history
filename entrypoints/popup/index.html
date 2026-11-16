@@ -10,24 +10,26 @@
     <style>
       :root {
         --brand-gradient: linear-gradient(135deg, #2fa252 0%, #52a8c9 100%);
-        --emerald: #2fa252;
+        --emerald: #176a37;
+        --teal: #1b6e79;
         --slate: #1f2937;
-        --gray: #6b7280;
-        --bg: #f9fafb;
+        --gray: #52665a;
+        --bg: #f4f8f6;
       }
+      [hidden] { display: none !important; }
 
       body {
         font-family: 'Outfit', sans-serif;
         margin: 0;
         padding: 0;
         width: 320px;
-        background: var(--brand-gradient);
+        background: var(--brand-gradient) top / 100% 3px no-repeat, var(--bg);
         color: var(--slate);
         min-height: 200px;
       }
 
       .container {
-        padding: 16px;
+        padding: 20px 16px 16px;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -37,15 +39,15 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: white;
-        margin-bottom: 4px;
+        color: var(--slate);
+        background: linear-gradient(105deg, #e4f3e8, #e8f3f5);
+        margin: -17px -16px 4px;
+        padding: 20px 16px 12px;
+        border-bottom: 1px solid #dcebe3;
       }
-
-      /* The icon is dark green on a green gradient, so it needs its own ground. */
       .header img {
-        background-color: rgba(255, 255, 255, 0.92);
-        border-radius: 8px;
-        padding: 3px;
+        width: 24px;
+        height: 24px;
       }
 
       .header h1 {
@@ -56,17 +58,13 @@
 
       .card {
         background: white;
+        border: 1px solid #e5ede8;
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 16px -12px rgba(31, 41, 55, 0.22);
         display: flex;
         flex-direction: column;
         gap: 8px;
-        transition: transform 0.2s ease-in-out;
-      }
-
-      .card:hover {
-        transform: scale(1.02);
       }
 
       .card-title {
@@ -78,7 +76,7 @@
       }
 
       .card-text {
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1.5;
         color: var(--slate);
       }
@@ -86,21 +84,43 @@
       .product-block {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
+      }
+
+      .product-name {
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.45;
+        color: var(--slate);
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        margin-bottom: 4px;
       }
 
       .price-meta {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
+        gap: 8px;
+        margin-top: 6px;
         font-size: 12px;
         color: var(--gray);
       }
+      .price-meta [data-field="lowest"] { color: var(--teal); font-weight: 600; }
 
       .caption {
-        font-size: 10px;
+        font-size: 12px;
         line-height: 1.5;
         color: var(--gray);
+      }
+      .product-block .caption { margin-top: 6px; }
+      .card > .caption:not([hidden]) {
+        border-top: 1px solid #e5ede8;
+        padding-top: 8px;
+        margin-top: 6px;
       }
 
       .price-delta {
@@ -118,9 +138,13 @@
 
       .price-row {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: baseline;
+        column-gap: 12px;
+        row-gap: 4px;
       }
+      .price-row .price-delta { margin-left: auto; white-space: nowrap; }
 
       .current-price {
         font-size: 20px;
@@ -129,6 +153,11 @@
       }
 
       .btn-portal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        box-sizing: border-box;
         background: var(--emerald);
         color: white;
         text-decoration: none;
@@ -137,16 +166,15 @@
         text-align: center;
         font-weight: 600;
         font-size: 14px;
-        transition: background 0.2s;
+        transition: background-color 0.18s ease;
       }
 
-      .btn-portal:hover {
-        filter: brightness(1.1);
-      }
+      .btn-portal:hover { background: #11562c; }
+      .btn-portal:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
 
       .footer {
-        font-size: 10px;
-        color: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+        color: var(--gray);
         text-align: center;
         margin-top: 4px;
       }
@@ -161,13 +189,14 @@
 
       <div class="card">
         <div class="card-title" data-state="loading">Memeriksa…</div>
-        <div class="card-text" data-state="pdp-untracked" hidden>Belum dilacak — buka halaman ini untuk mencatatnya</div>
+        <div class="card-text" data-state="pdp-untracked" hidden>Riwayat harga belum tersedia. Tunggu sebentar; jika tetap kosong, muat ulang halaman produk.</div>
         <div class="card-text" data-state="search" hidden>Halaman pencarian — hasil dilacak saat Anda menggulir</div>
         <div class="card-text" data-state="wishlist" hidden>Wishlist — item tersimpan dilacak</div>
         <div class="card-text" data-state="other" hidden>Halaman ini belum bisa dilacak</div>
         <div class="card-text" data-state="unsupported" hidden>Situs ini belum didukung</div>
-        <div class="card-text" data-state="error" hidden>Data harga tidak bisa dibaca</div>
+        <div class="card-text" data-state="error" hidden>Data harga tidak bisa dibaca. Buka ekstensi lagi di tab produk; jika masih gagal, muat ulang tab tersebut.</div>
         <div class="product-block" data-state="pdp-tracked" hidden>
+          <div class="product-name" data-field="product-name"></div>
           <div class="card-title">Harga terbaru</div>
           <div class="price-row">
             <span class="current-price" data-field="current">—</span>

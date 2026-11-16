@@ -14,11 +14,26 @@ beforeAll(() => {
 });
 
 describe('Modal Structure', () => {
-  it('shows a static Tren heading and the chart region', () => {
-    const heading = modal.querySelector('h2');
-    expect(heading?.textContent).toBe('Tren');
+  it('identifies the price-history chart instead of relying on context', () => {
+    expect(modal.querySelector('h2')?.textContent).toBe('Riwayat harga');
     expect(modal.querySelector('.modal-content #chart-container')).not.toBeNull();
     expect(modal.querySelector('[data-tab], .tab-pane')).toBeNull();
+    const prices = modal.querySelector('#price-history-summary');
+    expect(prices?.tagName).toBe('DL');
+    expect(Array.from(prices?.querySelectorAll('dt') ?? [], (label) => label.textContent)).toEqual(['Harga terakhir', 'Harga terendah']);
+    expect(prices?.querySelectorAll('dd')).toHaveLength(2);
+  });
+
+  it('names the chart dialog and keeps its close control keyboard-operable', () => {
+    expect(modal.getAttribute('role')).toBe('dialog');
+    expect(modal.getAttribute('aria-modal')).toBe('true');
+    expect(modal.getAttribute('aria-labelledby')).toBe(modal.querySelector('h2')?.id);
+    expect(modal.querySelector('.ph-modal-close')?.tagName).toBe('BUTTON');
+  });
+
+  it('explains missing history instead of showing an empty plot', () => {
+    const status = modal.querySelector('[role="status"]');
+    expect(status?.textContent).toMatch(/harga|riwayat/i);
   });
 });
 

@@ -41,6 +41,17 @@ describe('PriceHistory.save', () => {
     expect(stored['https://www.tokopedia.com/shop-a/sepatu-abc123'].prevPrice[0].price).toBe(100);
     expect(stored['https://www.tokopedia.com/shop-b/tas-def456'].prevPrice[0].price).toBe(200);
   });
+
+  it('does not render the previous product while the next product is loading', async () => {
+    const ph = new PriceHistory();
+    const chart = { print: vi.fn() };
+    await ph.save({ url: 'product-a', name: 'A', price: 100 }, chart);
+    chart.print.mockClear();
+    ph.render(chart, 'product-b');
+    expect(chart.print).not.toHaveBeenCalled();
+    ph.render(chart, 'product-a');
+    expect(chart.print).toHaveBeenCalledWith(expect.objectContaining({ prevPrice: [expect.objectContaining({ price: 100 })] }));
+  });
 });
 describe('migratePriceData', () => {
   it('converts a legacy value record to price', () => {
