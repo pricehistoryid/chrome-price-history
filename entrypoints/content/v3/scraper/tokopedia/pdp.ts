@@ -27,8 +27,9 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
     const ratingEl = document.querySelector(selectors.rating);
     const soldEl = document.querySelector(selectors.sold);
 
-    const priceText = safeGetTextContent(priceEl);
-    const price = priceText ? cleanPrice(priceText) : "0";
+    const priceText = safeGetTextContent(priceEl) ||
+      document.querySelector<HTMLMetaElement>('meta[property="product:price:amount"]')?.content || '';
+    const price = cleanPrice(priceText);
 
     let imageUrl = "";
     if (magnifierEl) {
@@ -48,8 +49,9 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
       return null;
     }
 
-    if (price === "0" || !price) {
+    if (!(Number(price) > 0)) {
       console.warn('Product price not found or invalid');
+      return null;
     }
 
     const result = {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { validateProductData } from '../entrypoints/content/v3/utils/validation';
 import {
   SYNC_QUEUE_MAX,
   batchForUpload,
@@ -25,6 +26,10 @@ describe('readQueue', () => {
 
   it('drops entries that could not be uploaded', () => {
     expect(readQueue([price('a'), { url: 'b' }, null, price('c', NaN)])).toEqual([price('a')]);
+  });
+
+  it('drops queued zero prices before they can block a batch', () => {
+    expect(readQueue([price('invalid', 0), price('valid', 1000)])).toEqual([price('valid', 1000)]);
   });
 
   it('keeps a YYYY-MM-DD day and drops anything else', () => {
@@ -92,5 +97,13 @@ describe('pendingCount', () => {
   it('counts only entries that could be uploaded', () => {
     expect(pendingCount([price('a'), price('b'), { url: 'c' }])).toBe(2);
     expect(pendingCount(undefined)).toBe(0);
+  });
+});
+
+describe('product upload validation', () => {
+  it('rejects zero prices while accepting positive prices', () => {
+    const product = { url: 'https://www.tokopedia.com/shop/item', name: 'Item', price: 0, imageUrl: '' };
+    expect(() => validateProductData(product)).toThrow();
+    expect(validateProductData({ ...product, price: 1000 }).price).toBe('1000');
   });
 });

@@ -84,8 +84,8 @@ export function validateAndParsePrice(price: string | number): number {
     throw new Error('Invalid price: Cannot parse price value');
   }
 
-  if (parsedPrice < 0) {
-    throw new Error('Invalid price: Price cannot be negative');
+  if (parsedPrice <= 0) {
+    throw new Error('Invalid price: Price must be greater than zero');
   }
 
   if (parsedPrice > 10_000_000_000) { // 10 billion

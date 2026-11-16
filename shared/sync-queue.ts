@@ -50,6 +50,7 @@ function isQueuedPrice(value: unknown): value is QueuedPrice {
     typeof candidate.name === 'string' &&
     typeof candidate.price === 'number' &&
     Number.isFinite(candidate.price) &&
+    candidate.price > 0 &&
     // ponytail: a malformed date is dropped with its entry rather than sent,
     // because one bad value 400s the entire batch and stalls the queue.
     (observedAt === undefined || (typeof observedAt === 'string' && ISO_DAY.test(observedAt)))
