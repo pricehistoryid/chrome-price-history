@@ -3,8 +3,8 @@ import { ProductData } from '../result'
 import {
   cleanImageUrl,
   cleanPrice,
+  cleanSold,
   safeGetTextContent,
-  safeGetChildNodeText,
   TOKOPEDIA_SELECTORS
 } from './clean';
 import { extractWithFallback } from '../fallback';
@@ -41,7 +41,7 @@ export async function scrapePDP(url: string): Promise<ProductData | null> {
     }
 
     const rating = safeGetTextContent(ratingEl);
-    const sold = safeGetChildNodeText(soldEl, 2) || safeGetTextContent(soldEl);
+    const sold = cleanSold(safeGetTextContent(soldEl));
 
     // Validate that we have at least a name and price
     if (!name || name.length === 0) {

@@ -30,6 +30,21 @@ describe('Tokopedia product page price', () => {
     expect((await scrapePDP(PRODUCT_URL))?.price).toBe('1065000');
   });
 
+  it('uploads a sold count of 1000 when Tokopedia shows Terjual 1 rb+', async () => {
+    const sold = document.createElement('div');
+    sold.setAttribute('data-testid', 'lblPDPDetailSoldCounter');
+    sold.innerHTML = '<span>Terjual </span><span> </span><span>1</span><span> rb+</span>';
+    document.querySelector('#pdp_comp-product_content')?.appendChild(sold);
+
+    const product = await scrapePDP(PRODUCT_URL);
+    expect(product?.sold).toBe('1000');
+    await updateProductPrice(product!);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'UPDATE_PRODUCT_PRICE',
+      payload: [expect.objectContaining({ sold: 1000 })],
+    }));
+  });
+
   it('does not upload when neither the DOM nor metadata has a price', async () => {
     document.querySelector('[data-testid="lblPDPDetailProductPrice"]')?.remove();
     document.querySelector('meta[property="product:price:amount"]')?.remove();

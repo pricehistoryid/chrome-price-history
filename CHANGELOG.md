@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Tokopedia product pages now parse the complete `Terjual 1 rb+` label as 1,000 sold units instead of reading only the `1` child node.
 - The popup keeps the emerald-to-teal signature in a narrow header accent, moves the price summary onto a quiet neutral ground, and lets oversized price changes wrap instead of colliding; its dashboard target is at least 44px tall.
 - The popup now hides inactive price states, identifies the tracked tab, gives recovery steps when history is unavailable, and improves button contrast plus supporting-text legibility.
 - The chart modal separates current and lowest prices into scannable figures, shows a reduced-motion-aware loading placeholder, and recovers a first-draw failure on the next frame; local history still opens when the price API is unavailable.

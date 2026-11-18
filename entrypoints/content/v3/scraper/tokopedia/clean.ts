@@ -74,22 +74,6 @@ export function safeGetTextContent(element: Element | null, selector?: string): 
 }
 
 /**
- * Safely gets text content from child nodes
- */
-export function safeGetChildNodeText(parent: Element | null, childIndex: number): string {
-  try {
-    if (!parent || !parent.childNodes || parent.childNodes.length <= childIndex) {
-      return '';
-    }
-    const childNode = parent.childNodes[childIndex];
-    return childNode?.textContent?.trim() ?? '';
-  } catch (error) {
-    console.warn('Error getting child node text:', error);
-    return '';
-  }
-}
-
-/**
  * Safely gets href from an anchor element
  */
 export function safeGetHref(element: Element | null, selector?: string): string {
