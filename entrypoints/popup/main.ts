@@ -1,5 +1,4 @@
 import { classifyPage } from '../../shared/page-url';
-import { SYNC_QUEUE_KEY, pendingCount } from '../../shared/sync-queue';
 import { productPageUrl } from '../../shared/pricehistory-url';
 import { buildProductSummary, findProductRecord } from './product-summary';
 
@@ -54,16 +53,50 @@ function renderDelta(delta: number | null) {
   el.className = `price-delta ${delta < 0 ? 'down' : 'up'}`;
 }
 
-function renderPending(count: number) {
-  const el = document.querySelector<HTMLElement>('[data-field="pending"]');
-  if (!el) return;
+async function renderSyncStatus(): Promise<void> {
+  const status = document.querySelector<HTMLElement>('[data-field="sync-status"]');
+  const pending = document.querySelector<HTMLElement>('[data-field="pending"]');
+  const rejected = document.querySelector<HTMLElement>('[data-field="rejected"]');
+  const login = document.querySelector<HTMLElement>('[data-action="login"]');
+  if (!status || !pending || !rejected || !login) return;
 
-  el.hidden = count === 0;
-  el.textContent = count === 0 ? '' : `${count} harga menunggu sinkronisasi`;
+  status.textContent = 'Mode lokal · status sinkronisasi tidak tersedia';
+  pending.hidden = true;
+  pending.textContent = '';
+  login.hidden = false;
+  rejected.hidden = true;
+  rejected.textContent = '';
+
+  try {
+    const reply: unknown = await chrome.runtime.sendMessage({ type: 'GET_SYNC_STATUS' });
+    if (!reply || typeof reply !== 'object' || !('success' in reply) || reply.success !== true || !('authenticated' in reply)) return;
+    if (reply.authenticated === false) {
+      status.textContent = 'Hanya tersimpan lokal · masuk untuk sinkronisasi';
+      return;
+    }
+    if (reply.authenticated !== true || !('accountId' in reply) || typeof reply.accountId !== 'string' || !reply.accountId ||
+      !('pending' in reply) || typeof reply.pending !== 'number' || !Number.isSafeInteger(reply.pending) || reply.pending < 0 ||
+      !('rejected' in reply) || typeof reply.rejected !== 'number' || !Number.isSafeInteger(reply.rejected) || reply.rejected < 0) return;
+
+    status.textContent = reply.rejected ? 'Sinkronisasi akun aktif · beberapa harga gagal' : 'Sinkronisasi akun aktif';
+    login.hidden = true;
+    pending.hidden = reply.pending === 0;
+    pending.textContent = reply.pending === 0 ? '' : `${reply.pending} harga menunggu sinkronisasi`;
+    rejected.hidden = reply.rejected === 0;
+    rejected.textContent = reply.rejected === 0 ? '' : `${reply.rejected} harga tidak dapat disinkronkan. Tetap tersimpan di perangkat ini.`;
+  } catch {
+    // The popup can still display local price history if the background is unavailable.
+  }
 }
 
 export async function render(): Promise<void> {
+  void renderSyncStatus();
   try {
+    const website = new URL(import.meta.env.VITE_WEB_URL).origin;
+    const login = document.querySelector<HTMLAnchorElement>('[data-action="login"]');
+    if (login) login.href = `${website}/login`;
+    const portal = document.querySelector<HTMLAnchorElement>('.btn-portal');
+    if (portal) portal.href = website;
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const page = classifyPage(tab?.url ?? '');
 
@@ -77,14 +110,12 @@ export async function render(): Promise<void> {
     }
 
     // Hand off to the app, which is where tracking and price alerts live.
-    const portal = document.querySelector<HTMLAnchorElement>('.btn-portal');
     if (portal) {
-      portal.href = productPageUrl(page.productKey);
+      portal.href = productPageUrl(page.productKey, website);
       portal.textContent = 'Buka di PriceHistory.id';
     }
 
-    const stored = await chrome.storage.local.get(['price_history', SYNC_QUEUE_KEY]);
-    renderPending(pendingCount(stored?.[SYNC_QUEUE_KEY]));
+    const stored = await chrome.storage.local.get('price_history');
     const summary = buildProductSummary(findProductRecord(stored?.price_history, page.productKey));
 
     if (!summary) {

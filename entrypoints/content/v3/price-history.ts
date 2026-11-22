@@ -99,110 +99,78 @@ export function mergePriceHistory(
 
 
 export class PriceHistory {
-  private ph: {
-    prevPrice: PriceData[];
-    lowestPrice: PriceData;
-  } | undefined;
+  private ph: StoredProduct | undefined;
+  private remoteHistory: StoredProduct | undefined;
+  private remoteAccountId: string | undefined;
   private currentUrl: string | undefined;
   // ponytail: serializes the read-modify-write in save()
   private queue: Promise<void> = Promise.resolve();
 
-  save(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
-    // Concurrent saves each read the whole price_history snapshot, so without
-    // this chain the later write silently discards the other product's update.
+  save(productData: ProductData, chart: { print: (data: StoredProduct) => void }): Promise<void> {
     const next = this.queue.then(() => this.saveNow(productData, chart));
     this.queue = next.catch(() => {});
     return next;
   }
 
-  mergeRemote(url: string, remote: PriceData[]): Promise<boolean> {
-    const next = this.queue.then(() => this.mergeRemoteNow(url, remote));
-    this.queue = next.then(() => undefined, () => undefined);
+  saveMany(products: ProductData[]): Promise<void> {
+    const next = this.queue.then(async () => {
+      const stored = await chrome.storage.local.get(['price_history']);
+      const history = (stored.price_history ?? {}) as Record<string, StoredProduct>;
+      const day = localDateString();
+      let changed = false;
+      for (const product of products) changed = this.recordPrice(history, product, day) || changed;
+      if (changed) await chrome.storage.local.set({ price_history: prunePriceHistory(history) });
+    });
+    this.queue = next.catch(() => {});
     return next;
   }
 
-  private async saveNow(productData: ProductData, chart: { print: (data: any) => void }): Promise<void> {
+  mergeRemote(url: string, remote: PriceData[], accountId: string): Promise<boolean> {
+    return this.queue.then(() => {
+      if (this.currentUrl !== url || !this.ph || !accountId || remote.length === 0) return false;
+      this.remoteHistory = mergePriceHistory(this.ph, remote);
+      this.remoteAccountId = accountId;
+      return true;
+    });
+  }
+
+  private recordPrice(history: Record<string, StoredProduct>, product: ProductData, day: string): boolean {
+    const price = Number(product.price);
+    if (!Number.isFinite(price) || price <= 0) return false;
+    const observation = { time: day, price };
+    const previous = history[product.url];
+    const points = (previous?.prevPrice ?? []).map(migratePriceData);
+    const lowest = previous?.lowestPrice ? migratePriceData(previous.lowestPrice) : observation;
+    const latest = points[0];
+    const changed = !latest || latest.time !== day || latest.price !== price;
+    if (changed) {
+      if (latest?.time === day) points[0] = observation;
+      else points.unshift(observation);
+    }
+    history[product.url] = { prevPrice: points, lowestPrice: price < lowest.price ? observation : lowest };
+    return changed;
+  }
+
+  private async saveNow(productData: ProductData, chart: { print: (data: StoredProduct) => void }): Promise<void> {
     const url = productData.url;
     if (this.currentUrl !== url) this.ph = undefined;
     this.currentUrl = url;
-    const date = localDateString();
-
-    const newData: PriceData = {
-      time: date,
-      price: Number(productData.price),
-    };
-
-    // ponytail: awaited so the storage write completes before this save resolves
-    const result: any = await chrome.storage.local.get(['price_history']);
-    const ph: any = result.price_history || {};
-
-    let currentProduct = ph[url];
-
-    if (currentProduct) {
-      // Migrate existing data if needed
-      currentProduct.prevPrice = (currentProduct.prevPrice || []).map((p: any) => migratePriceData(p));
-      currentProduct.lowestPrice = migratePriceData(currentProduct.lowestPrice);
-    }
-
-    this.ph = currentProduct || { prevPrice: [], lowestPrice: newData };
-
-    // Update lowest price if needed
-    if (newData.price < this.ph!.lowestPrice.price) {
-      this.ph!.lowestPrice = newData;
-    }
-
-    const latestPrice = this.ph!.prevPrice[0] || { price: 0, time: '' };
-
-    // Add new data if it's different from the latest
-    if (latestPrice.price !== newData.price || latestPrice.time !== newData.time) {
-      if (latestPrice.time === newData.time && latestPrice.price !== newData.price) {
-        // Latest observation of the day wins. It used to keep only the day's
-        // lowest, which silently dropped a higher price — a variant switch, or
-        // a price that recovered. The all-time low is tracked separately.
-        this.ph!.prevPrice[0] = newData;
-      } else if (latestPrice.time !== newData.time) {
-        this.ph!.prevPrice.unshift(newData);
-      }
-
-      ph[url] = {
-        prevPrice: this.ph!.prevPrice,
-        lowestPrice: this.ph!.lowestPrice,
-      };
-
-      const pruned = prunePriceHistory(ph);
-      await chrome.storage.local.set({ price_history: pruned });
-      this.ph = pruned[url] ?? this.ph;
-    }
-
-    chart.print(this.ph);
-  }
-
-  private async mergeRemoteNow(url: string, remote: PriceData[]): Promise<boolean> {
-    if (remote.length === 0) return false;
-
+    this.remoteHistory = undefined;
+    this.remoteAccountId = undefined;
     const result = await chrome.storage.local.get(['price_history']);
-    // PriceHistory owns this storage shape; legacy point values are migrated below.
     const history = (result.price_history ?? {}) as Record<string, StoredProduct>;
-    const currentProduct = history[url];
-    if (!currentProduct) return false;
-
-    const current: StoredProduct = {
-      prevPrice: (currentProduct.prevPrice ?? []).map((point) => migratePriceData(point)),
-      lowestPrice: migratePriceData(currentProduct.lowestPrice),
-    };
-    const merged = mergePriceHistory(current, remote);
-    if (!merged) return false;
-
-    history[url] = merged;
-    await chrome.storage.local.set({ price_history: history });
-    if (this.currentUrl !== url) return false;
-    this.ph = merged;
-    return true;
+    if (this.recordPrice(history, productData, localDateString())) {
+      const pruned = prunePriceHistory(history);
+      await chrome.storage.local.set({ price_history: pruned });
+      this.ph = pruned[url] ?? history[url];
+    } else {
+      this.ph = history[url];
+    }
+    if (this.ph) chart.print(this.ph);
   }
 
-  render(chart: { print: (data: any) => void }, expectedUrl?: string): void {
-    if (this.ph && (!expectedUrl || this.currentUrl === expectedUrl)) {
-      chart.print(this.ph);
-    }
+  render(chart: { print: (data: StoredProduct) => void }, expectedUrl?: string, accountId?: string): void {
+    if (!this.ph || (expectedUrl && this.currentUrl !== expectedUrl)) return;
+    chart.print(accountId && accountId === this.remoteAccountId ? this.remoteHistory ?? this.ph : this.ph);
   }
 }

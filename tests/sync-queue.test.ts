@@ -57,9 +57,9 @@ describe('mergeIntoQueue', () => {
     const merged = mergeIntoQueue([dated('a', '2026-09-20')], [dated('b', '2026-09-27')]);
 
     expect(merged).toEqual([dated('a', '2026-09-20'), dated('b', '2026-09-27')]);
-    // Newest entry for a URL wins, with its own day — not the day it drained.
+    // Distinct days must both reach the account history after an outage.
     expect(mergeIntoQueue([dated('a', '2026-09-20')], [dated('a', '2026-09-28', 3000)])).toEqual([
-      dated('a', '2026-09-28', 3000),
+      dated('a', '2026-09-20'), dated('a', '2026-09-28', 3000),
     ]);
   });
 
@@ -105,5 +105,12 @@ describe('product upload validation', () => {
     const product = { url: 'https://www.tokopedia.com/shop/item', name: 'Item', price: 0, imageUrl: '' };
     expect(() => validateProductData(product)).toThrow();
     expect(validateProductData({ ...product, price: 1000 }).price).toBe('1000');
+  });
+
+  it('rejects prices outside the API integer range and unsupported URL authority', () => {
+    const product = { url: 'https://www.tokopedia.com/shop/item', name: 'Item', price: 2147483648, imageUrl: '' };
+    expect(() => validateProductData(product)).toThrow();
+    expect(() => validateProductData({ ...product, price: 1000, url: 'https://user:pass@www.tokopedia.com/shop/item' })).toThrow();
+    expect(() => validateProductData({ ...product, price: 1000, url: 'https://www.tokopedia.com:444/shop/item' })).toThrow();
   });
 });

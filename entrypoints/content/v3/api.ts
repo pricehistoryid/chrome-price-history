@@ -59,8 +59,8 @@ export async function updateProductPrices(products: ProductData[]): Promise<void
   const failed = settled.filter((result) => result.status === 'rejected');
 
   if (failed.length > 0) {
-    // The background worker has already stored every failed batch in the retry
-    // queue, and the popup reports the backlog; this is only for debugging.
+    // A failed background request may be queued for its original account;
+    // local history remains available even when account sync is unavailable.
     console.error('Failed to update product prices:', {
       error: failed.map((result) => (result as PromiseRejectedResult).reason?.message ?? 'Unknown error occurred'),
       itemCount: valid.length,
@@ -76,16 +76,15 @@ export async function updateProductPrice(productData: ProductData): Promise<void
   await updateProductPrices([productData]);
 }
 
-/** Reads shared history; unavailable endpoints leave the local chart untouched. */
-export async function getProductPriceHistory(url: string): Promise<PriceData[]> {
+/** Unavailable or signed-out endpoints leave local prices untouched. */
+export async function getProductPriceHistory(url: string): Promise<{ accountId: string | null; prices: PriceData[] }> {
   try {
-    // The background validates the API response before sending it over this internal message boundary.
-    const response = await chrome.runtime.sendMessage({
-      type: 'GET_PRODUCT_PRICE_HISTORY',
-      url,
-    }) as { success?: boolean; data?: unknown } | undefined;
-    return response?.success && Array.isArray(response.data) ? response.data as PriceData[] : [];
+    const response: unknown = await chrome.runtime.sendMessage({ type: 'GET_PRODUCT_PRICE_HISTORY', url });
+    if (!response || typeof response !== 'object' || !('success' in response) || response.success !== true ||
+      !('accountId' in response) || typeof response.accountId !== 'string' ||
+      !('data' in response) || !Array.isArray(response.data)) return { accountId: null, prices: [] };
+    return { accountId: response.accountId, prices: response.data as PriceData[] };
   } catch {
-    return [];
+    return { accountId: null, prices: [] };
   }
 }

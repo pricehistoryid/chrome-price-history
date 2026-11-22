@@ -52,6 +52,20 @@ describe('PriceHistory.save', () => {
     ph.render(chart, 'product-a');
     expect(chart.print).toHaveBeenCalledWith(expect.objectContaining({ prevPrice: [expect.objectContaining({ price: 100 })] }));
   });
+
+  it('stores search-page products locally in one write without a chart', async () => {
+    const ph = new PriceHistory();
+    const products = [
+      { url: 'https://www.tokopedia.com/shop/a-123', name: 'A', price: 100 },
+      { url: 'https://www.tokopedia.com/shop/b-456', name: 'B', price: 200 },
+      { url: 'https://www.tokopedia.com/shop/bad-789', name: 'Bad', price: 0 },
+    ];
+    await ph.saveMany(products);
+    expect(store.price_history[products[0].url].prevPrice[0].price).toBe(100);
+    expect(store.price_history[products[1].url].prevPrice[0].price).toBe(200);
+    expect(store.price_history[products[2].url]).toBeUndefined();
+    expect(chrome.storage.local.set).toHaveBeenCalledTimes(1);
+  });
 });
 describe('migratePriceData', () => {
   it('converts a legacy value record to price', () => {
@@ -187,30 +201,27 @@ describe('mergePriceHistory', () => {
 });
 
 describe('PriceHistory.mergeRemote', () => {
-  it('persists the union and makes it available to the active chart', async () => {
+  it('never persists account history into unowned local storage or renders it for another account', async () => {
     const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
     const chart = { print: vi.fn() };
     const ph = new PriceHistory();
     await ph.save({ url, name: 'A', price: 150 }, chart);
-    store.price_history[url] = {
-      prevPrice: [{ time: '2026-09-27', price: 150 }],
-      lowestPrice: { time: '2026-08-01', price: 140 },
-    };
+    const local = structuredClone(store.price_history[url]);
     chart.print.mockClear();
 
-    expect(await ph.mergeRemote(url, [{ time: '2026-09-25', price: 130 }])).toBe(true);
+    expect(await ph.mergeRemote(url, [{ time: '2026-09-25', price: 130 }], 'account-a')).toBe(true);
+    expect(store.price_history[url]).toEqual(local);
 
-    const merged = {
-      prevPrice: [
-        { time: '2026-09-27', price: 150 },
-        { time: '2026-09-25', price: 130 },
-      ],
-      lowestPrice: { time: '2026-09-25', price: 130 },
-    };
-    expect(store.price_history[url]).toEqual(merged);
-
-    ph.render(chart);
-    expect(chart.print).toHaveBeenCalledWith(merged);
+    ph.render(chart, url, 'account-a');
+    expect(chart.print).toHaveBeenCalledWith(expect.objectContaining({
+      prevPrice: expect.arrayContaining([{ time: '2026-09-25', price: 130 }]),
+    }));
+    chart.print.mockClear();
+    ph.render(chart, url, 'account-b');
+    expect(chart.print).toHaveBeenCalledWith(local);
+    chart.print.mockClear();
+    ph.render(chart, url);
+    expect(chart.print).toHaveBeenCalledWith(local);
   });
 });
 

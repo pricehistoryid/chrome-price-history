@@ -1,6 +1,7 @@
 import { classifyPage } from '../shared/page-url';
 import {
-  SYNC_QUEUE_KEY,
+  ACCOUNT_SYNC_REJECTED_KEY,
+  ACCOUNT_SYNC_QUEUE_KEY,
   batchForUpload,
   mergeIntoQueue,
   readQueue,
@@ -8,26 +9,33 @@ import {
 } from '../shared/sync-queue';
 
 export default defineBackground(() => {
-  // Listen for messages from content scripts
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Serialize account queue updates so concurrent content scripts cannot lose observations.
+  let uploads: Promise<void> = Promise.resolve();
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'UPDATE_PRODUCT_PRICE') {
-      handleUpdateProductPrice(message.payload)
-        .then(result => sendResponse({ success: true, data: result }))
-        .catch(async (error) => {
-          // The API is unreachable; keep the prices for the next successful request
-          // instead of dropping them.
-          await enqueuePrices(message.payload);
-          sendResponse({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
-        });
-      return true; // Keep the message channel open for async response
+      const prior = uploads;
+      const boundAccount = accountId().catch((error: unknown) => error instanceof Error ? error : new Error('Session check failed'));
+      const next = prior.then(() => boundAccount).then((id) => {
+        if (id instanceof Error) throw id;
+        return handleUpdateProductPrice(message.payload, id);
+      });
+      uploads = next.then(() => undefined, () => undefined);
+      void next.then(
+        (result) => sendResponse({ success: true, data: result }),
+        (error) => sendResponse({ success: false, error: error instanceof Error ? error.message : 'Sync failed' }),
+      );
+      return true;
     }
     if (message.type === 'GET_PRODUCT_PRICE_HISTORY') {
-      readProductPriceHistory(message.url)
-        .then(data => sendResponse({ success: true, data }))
-        .catch(() => sendResponse({ success: false, data: [] }));
+      void readProductPriceHistory(message.url)
+        .then((result) => sendResponse({ success: true, ...result }))
+        .catch(() => sendResponse({ success: false, accountId: null, data: [] }));
+      return true;
+    }
+    if (message.type === 'GET_SYNC_STATUS') {
+      void getSyncStatus()
+        .then((status) => sendResponse({ success: true, ...status }))
+        .catch(() => sendResponse({ success: false, authenticated: false, accountId: null, pending: 0 }));
       return true;
     }
   });
@@ -48,147 +56,136 @@ export default defineBackground(() => {
   );
 });
 
-/**
- * Uploads a batch, then drains anything still queued. A rejected promise means
- * nothing in `payload` was delivered.
- */
-async function handleUpdateProductPrice(payload: unknown): Promise<string> {
-  const batch = readQueue(payload);
-  if (batch.length === 0) return '';
-
-  const result = await postPrices(batch);
-  // The API answered, so this is the moment to hand over the backlog too.
-  await drainQueue();
-  return result;
+/** Website sessions are the only extension sync credential. */
+function apiUrl(): URL {
+  const configured = import.meta.env.VITE_API_URL;
+  if (!configured) throw new Error('VITE_API_URL is missing; see .env.example.');
+  const url = new URL(configured);
+  if (!url.pathname.endsWith('/account/prices')) throw new Error('Account price endpoint is not configured.');
+  return url;
 }
 
-async function postPrices(batch: QueuedPrice[]): Promise<string> {
-  const apiUrl = import.meta.env.VITE_API_URL;
-  const jwtToken = import.meta.env.VITE_API_JWT_TOKEN;
-
-  if (!apiUrl) {
-    // No fallback on purpose: a development build must not quietly upload to
-    // production. .env.development and .env.production set this per mode.
-    throw new Error('VITE_API_URL is missing; see .env.example.');
+async function accountId(): Promise<string | null> {
+  const url = apiUrl();
+  url.pathname = url.pathname.replace(/\/account\/prices$/, '/auth/me');
+  const response = await fetch(url, { credentials: 'include', headers: { Accept: 'application/json' } });
+  if (response.status === 401) return null;
+  if (!response.ok) throw new Error(`Session check failed: ${response.status}`);
+  const body: unknown = await response.json();
+  if (!body || typeof body !== 'object' || !('data' in body) || !body.data || typeof body.data !== 'object' || !('id' in body.data) || typeof body.data.id !== 'string') {
+    throw new Error('Invalid session response');
   }
+  return body.data.id;
+}
 
-  if (!jwtToken) {
-    throw new Error('API JWT token is missing in background script.');
-  }
+function accountQueues(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
 
-  const headers = new Headers({
-    'Authorization': `Bearer ${jwtToken}`,
-    'Content-Type': 'application/json',
-    'User-Agent': 'PriceHistory-ID-Extension/1.0.0'
-  });
-
-  const requestOptions: RequestInit = {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(batch)
+async function getSyncStatus() {
+  const id = await accountId();
+  if (!id) return { authenticated: false, accountId: null, pending: 0, rejected: 0 };
+  const stored = await chrome.storage.local.get([ACCOUNT_SYNC_QUEUE_KEY, ACCOUNT_SYNC_REJECTED_KEY]);
+  const rejected = accountQueues(stored[ACCOUNT_SYNC_REJECTED_KEY])[id];
+  return {
+    authenticated: true, accountId: id,
+    pending: readQueue(accountQueues(stored[ACCOUNT_SYNC_QUEUE_KEY])[id]).length,
+    rejected: Array.isArray(rejected) ? rejected.length : 0,
   };
-
-  const response = await retryWithBackoff(async () => {
-    const res = await fetch(apiUrl, requestOptions);
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-    return res;
-  });
-
-  return await response.text();
 }
 
-async function readProductPriceHistory(url: unknown): Promise<Array<{ time: string; price: number }>> {
-  const apiUrl = import.meta.env.VITE_API_URL;
-  const jwtToken = import.meta.env.VITE_API_JWT_TOKEN;
-  if (!apiUrl || !jwtToken || typeof url !== 'string' || url.length === 0) {
-    throw new Error('Price history read is not configured.');
-  }
+async function handleUpdateProductPrice(payload: unknown, id: string | null): Promise<string> {
+  if (!id) return 'local-only';
+  const batch = readQueue(payload).filter((item) => item.observed_at !== undefined && item.price <= 2_147_483_647);
+  if (batch.length === 0) return 'local-only';
+  await enqueuePrices(id, batch);
+  if (!await drainQueue(id)) throw new Error('Prices remain queued for this account');
+  return 'sent';
+}
 
-  const endpoint = new URL(apiUrl);
+async function postPrices(batch: QueuedPrice[], id: string): Promise<string> {
+  const request: RequestInit = {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'X-PriceHistory-Account': id, 'Content-Type': 'application/json' },
+    body: JSON.stringify(batch.map(({ url, price, observed_at }) => ({ url, price, observed_at }))),
+  };
+  const response = await fetch(apiUrl(), request);
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403 || response.status === 400) throw new SyncRejected(response.status);
+    throw new Error(`Price sync failed: ${response.status}`);
+  }
+  return response.text();
+}
+
+class SyncRejected extends Error {
+  constructor(public status: number) { super(`Price sync rejected: ${status}`); }
+}
+
+async function readProductPriceHistory(url: unknown): Promise<{ accountId: string | null; data: Array<{ time: string; price: number }> }> {
+  if (typeof url !== 'string' || url.length === 0) return { accountId: null, data: [] };
+  const id = await accountId();
+  if (!id) return { accountId: null, data: [] };
+  const endpoint = apiUrl();
   endpoint.searchParams.set('url', url);
   const response = await fetch(endpoint, {
-    method: 'GET',
-    headers: new Headers({
-      'Authorization': `Bearer ${jwtToken}`,
-      'Accept': 'application/json',
-    }),
+    method: 'GET', credentials: 'include',
+    headers: { 'X-PriceHistory-Account': id, Accept: 'application/json' },
   });
   if (!response.ok) throw new Error(`Price history read failed: ${response.status}`);
-
   const body: unknown = await response.json();
-  if (
-    !body || typeof body !== 'object' ||
-    !('success' in body) || body.success !== true ||
-    !('data' in body) || !Array.isArray(body.data)
-  ) {
+  if (!body || typeof body !== 'object' || !('success' in body) || body.success !== true || !('data' in body) || !Array.isArray(body.data)) {
     throw new Error('Invalid price history response.');
   }
-
-  return body.data.filter((point: unknown): point is { time: string; price: number } => {
+  const data = body.data.filter((point: unknown): point is { time: string; price: number } => {
     if (!point || typeof point !== 'object' || !('time' in point) || !('price' in point)) return false;
     return typeof point.time === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(point.time) &&
       typeof point.price === 'number' && Number.isInteger(point.price) && point.price >= 0;
   });
+  return await accountId() === id ? { accountId: id, data } : { accountId: null, data: [] };
 }
 
-async function enqueuePrices(payload: unknown): Promise<void> {
-  try {
-    const stored = await chrome.storage.local.get(SYNC_QUEUE_KEY);
-    await chrome.storage.local.set({
-      [SYNC_QUEUE_KEY]: mergeIntoQueue(stored[SYNC_QUEUE_KEY], payload)
-    });
-  } catch (error) {
-    // Storage is the last line of defence; a failure here is not worth
-    // breaking the response the caller is waiting on.
-    console.error('Failed to queue prices for retry:', error);
-  }
+async function enqueuePrices(id: string, payload: QueuedPrice[]): Promise<void> {
+  const stored = await chrome.storage.local.get(ACCOUNT_SYNC_QUEUE_KEY);
+  const queues = accountQueues(stored[ACCOUNT_SYNC_QUEUE_KEY]);
+  await chrome.storage.local.set({ [ACCOUNT_SYNC_QUEUE_KEY]: { ...queues, [id]: mergeIntoQueue(queues[id], payload) } });
 }
 
-/**
- * Sends queued prices oldest-first, stopping at the first request that fails so
- * an unreachable API is not hammered, and writes back whatever is left.
- */
-async function drainQueue(): Promise<void> {
-  const stored = await chrome.storage.local.get(SYNC_QUEUE_KEY);
-  const queue = readQueue(stored[SYNC_QUEUE_KEY]);
-  if (queue.length === 0) return;
-
+async function drainQueue(id: string): Promise<boolean> {
+  const stored = await chrome.storage.local.get([ACCOUNT_SYNC_QUEUE_KEY, ACCOUNT_SYNC_REJECTED_KEY]);
+  const queues = accountQueues(stored[ACCOUNT_SYNC_QUEUE_KEY]);
+  const rejected = accountQueues(stored[ACCOUNT_SYNC_REJECTED_KEY]);
+  const queue = readQueue(queues[id]).filter((item) => item.observed_at !== undefined);
+  if (queue.length === 0) return true;
   const remaining: QueuedPrice[] = [];
-  let apiReachable = true;
-
+  const permanent: QueuedPrice[] = [];
+  let reachable = true;
   for (const batch of batchForUpload(queue)) {
-    if (apiReachable) {
-      try {
-        await postPrices(batch);
-        continue;
-      } catch {
-        apiReachable = false;
+    if (!reachable) { remaining.push(...batch); continue; }
+    try {
+      await postPrices(batch, id);
+    } catch (error) {
+      if (error instanceof SyncRejected && error.status === 400 && batch.length > 1) {
+        for (const item of batch) {
+          if (!reachable) { remaining.push(item); continue; }
+          try {
+            await postPrices([item], id);
+          } catch (itemError) {
+            if (itemError instanceof SyncRejected && itemError.status === 400) permanent.push(item);
+            else { remaining.push(item); reachable = false; }
+          }
+        }
+      } else if (error instanceof SyncRejected && error.status === 400) {
+        permanent.push(...batch);
+      } else {
+        remaining.push(...batch);
+        reachable = false;
       }
     }
-    remaining.push(...batch);
   }
-
-  await chrome.storage.local.set({ [SYNC_QUEUE_KEY]: remaining });
-}
-
-/**
- * Retries a function with exponential backoff
- */
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  initialDelay: number = 1000
-): Promise<T> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxRetries) throw error;
-      const delay = initialDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retries exceeded');
+  await chrome.storage.local.set({
+    [ACCOUNT_SYNC_QUEUE_KEY]: { ...queues, [id]: remaining },
+    [ACCOUNT_SYNC_REJECTED_KEY]: { ...rejected, [id]: mergeIntoQueue(rejected[id], permanent) },
+  });
+  return remaining.length === 0 && permanent.length === 0;
 }

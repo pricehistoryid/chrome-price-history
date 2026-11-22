@@ -47,12 +47,27 @@ const PRICE_WATCHERS: Partial<Record<Marketplace, (onChange: () => void) => () =
 // Chart instance created outside
 const chart = new ChartManager('chart-container');
 window.priceHistoryParam = { chart }; // Make accessible globally if needed
+let accountViewEpoch = 0;
+
+async function showAccountHistory(url: string, ph: PriceHistory, chart: ChartManager): Promise<void> {
+  const epoch = accountViewEpoch;
+  try {
+    const { accountId, prices } = await getProductPriceHistory(url);
+    if (epoch !== accountViewEpoch || !accountId || !await ph.mergeRemote(url, prices, accountId)) return;
+    if (epoch !== accountViewEpoch || modal.style.display !== 'block' || modal.dataset.productUrl !== url) return;
+    chart.clear();
+    ph.render(chart, url, accountId);
+  } catch (error) {
+    console.error('Could not load account price history:', error);
+  }
+}
 
 function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: PriceHistory) {
   const trigger = btn.getElement();
   let obscured: Element[] = [];
   const close = () => {
     if (modal.style.display !== 'block') return;
+    accountViewEpoch += 1;
     modal.style.display = 'none';
     for (const element of obscured) element.removeAttribute('inert');
     obscured = [];
@@ -61,18 +76,33 @@ function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: Pric
   };
 
   btn.onClick(() => {
+    accountViewEpoch += 1;
     modal.style.display = 'block';
     obscured = Array.from(document.body.children).filter((element) => element !== modal && !element.hasAttribute('inert'));
     for (const element of obscured) element.setAttribute('inert', '');
     modal.querySelector<HTMLButtonElement>('.ph-modal-close')?.focus();
-    if (!window.priceHistoryParam.chart.isInitialized()) {
-      modal.querySelector('.modal-content')?.setAttribute('data-loading', 'true');
-      const status = modal.querySelector<HTMLElement>('#price-history-status');
-      if (status) status.textContent = 'Memuat riwayat harga…';
-      window.priceHistoryParam.chart.clear();
-      ph.render(window.priceHistoryParam.chart, modal.dataset.productUrl);
-    }
+    modal.querySelector('.modal-content')?.setAttribute('data-loading', 'true');
+    const status = modal.querySelector<HTMLElement>('#price-history-status');
+    if (status) status.textContent = 'Memuat riwayat harga…';
+    window.priceHistoryParam.chart.clear();
+    ph.render(window.priceHistoryParam.chart, modal.dataset.productUrl);
+    if (modal.dataset.productUrl) void showAccountHistory(modal.dataset.productUrl, ph, window.priceHistoryParam.chart);
   });
+  const handleFocus = () => {
+    if (modal.style.display !== 'block' || !modal.dataset.productUrl) return;
+    accountViewEpoch += 1;
+    window.priceHistoryParam.chart.clear();
+    ph.render(window.priceHistoryParam.chart, modal.dataset.productUrl);
+    void showAccountHistory(modal.dataset.productUrl, ph, window.priceHistoryParam.chart);
+  };
+  window.addEventListener('focus', handleFocus);
+  const hideAccountHistory = () => {
+    if (modal.style.display !== 'block') return;
+    accountViewEpoch += 1;
+    window.priceHistoryParam.chart.clear();
+    ph.render(window.priceHistoryParam.chart, modal.dataset.productUrl);
+  };
+  window.addEventListener('blur', hideAccountHistory);
 
   window.addEventListener('click', (event) => {
     if (event.target === modal) close();
@@ -107,6 +137,8 @@ function modalEventListener(modal: HTMLDivElement, btn: FloatingButton, ph: Pric
       window.priceHistoryParam.chart.destroy();
     }
     window.removeEventListener('keydown', handleEscapeKey);
+    window.removeEventListener('focus', handleFocus);
+    window.removeEventListener('blur', hideAccountHistory);
   };
 
   window.addEventListener('beforeunload', handlePageUnload);
@@ -179,7 +211,7 @@ function setupModal(ph: PriceHistory) {
 /** The modal outlives SPA navigation, so this runs on every product page. */
 export function pointFooterAtProduct(url: string) {
   const link = modal.querySelector<HTMLAnchorElement>('.modal-footer a');
-  if (link) link.href = productPageUrl(url);
+  if (link) link.href = productPageUrl(url, new URL(import.meta.env.VITE_WEB_URL).origin);
 }
 
 function teardownModal() {
@@ -208,6 +240,7 @@ async function processScraping(
     case 'pdp': {
       if (!result.result) return;
       const product = result.result[0];
+      accountViewEpoch += 1;
       modal.dataset.productUrl = product.url;
 
       setupModal(ph);
@@ -222,23 +255,19 @@ async function processScraping(
       const status = modal.querySelector<HTMLElement>('#price-history-status');
       if (status) status.textContent = 'Memuat riwayat harga…';
       chart.clear();
-      // ponytail: fire-and-forget; the promise chain serializes the storage write
+      // The local observation must finish before merging account history.
       void ph.save(product, { print: (history) => {
         if (modal.dataset.productUrl === product.url) chart.print(history);
-      } }).catch((error) => {
+      } }).then(() => {
+        if (modal.style.display === 'block' && modal.dataset.productUrl === product.url) {
+          void showAccountHistory(product.url, ph, chart);
+        }
+      }).catch((error) => {
         console.error('Error saving price history:', error);
         if (modal.dataset.productUrl !== product.url) return;
         modal.querySelector('.modal-content')?.removeAttribute('data-loading');
         const status = modal.querySelector<HTMLElement>('#price-history-status');
         if (status) status.textContent = 'Riwayat harga tidak dapat disimpan. Muat ulang halaman untuk mencoba lagi.';
-      });
-      void getProductPriceHistory(product.url).then(async (remote) => {
-        if (!await ph.mergeRemote(product.url, remote)) return;
-        if (`${location.origin}${location.pathname}` !== url) return;
-        chart.clear();
-        ph.render(chart, product.url);
-      }).catch((error) => {
-        console.error('Error merging remote price history:', error);
       });
       void updateProductPrice(product);
 
@@ -255,6 +284,7 @@ async function processScraping(
     case 'search': {
       teardownModal();
       if (!result.result) return;
+      await ph.saveMany(result.result);
       void updateProductPrices(result.result);
       break;
     }

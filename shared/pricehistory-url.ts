@@ -43,6 +43,6 @@ export function productSlug(productKey: string): string {
     .replace(/-+$/, '');
 }
 
-export function productPageUrl(productKey: string): string {
-  return `${SITE_ORIGIN}/product/${productSlug(productKey)}`;
+export function productPageUrl(productKey: string, origin = SITE_ORIGIN): string {
+  return `${origin}/product/${productSlug(productKey)}`;
 }

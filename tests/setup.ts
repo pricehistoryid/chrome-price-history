@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+vi.stubEnv('VITE_WEB_URL', 'https://pricehistory.id');
 
 const mockStorage = {
   get: vi.fn((keys, callback) => callback({})),

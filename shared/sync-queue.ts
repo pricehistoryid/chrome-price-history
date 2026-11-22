@@ -7,6 +7,8 @@
  */
 
 export const SYNC_QUEUE_KEY = 'sync_queue';
+export const ACCOUNT_SYNC_QUEUE_KEY = 'account_sync_queue';
+export const ACCOUNT_SYNC_REJECTED_KEY = 'account_sync_rejected';
 
 /** The API accepts at most this many products per request. */
 export const PRICE_BATCH_LIMIT = 100;
@@ -62,15 +64,13 @@ export function readQueue(value: unknown): QueuedPrice[] {
   return Array.isArray(value) ? value.filter(isQueuedPrice) : [];
 }
 
-/**
- * Appends `incoming` to `queue`. The newest entry for a product URL wins, and
- * the oldest entries fall off past `SYNC_QUEUE_MAX`.
- */
+/** Keeps the newest observation for each product/day, bounded by the queue cap. */
 export function mergeIntoQueue(queue: unknown, incoming: unknown): QueuedPrice[] {
-  const byUrl = new Map<string, QueuedPrice>();
-  for (const item of [...readQueue(queue), ...readQueue(incoming)]) byUrl.set(item.url, item);
-  // Map preserves insertion order, so the survivors stay oldest-first.
-  return [...byUrl.values()].slice(-SYNC_QUEUE_MAX);
+  const byProductDay = new Map<string, QueuedPrice>();
+  for (const item of [...readQueue(queue), ...readQueue(incoming)]) {
+    byProductDay.set(`${item.url}\0${item.observed_at ?? ''}`, item);
+  }
+  return [...byProductDay.values()].slice(-SYNC_QUEUE_MAX);
 }
 
 export function pendingCount(queue: unknown): number {

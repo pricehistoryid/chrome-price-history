@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Extension uploads and remote history now use the signed-in PriceHistory.id account, not an embedded shared bearer. Signed-out browsing remains local, including search and wishlist observations; private remote prices never enter unowned local storage, retries preserve the latest same-day price, permanent rejections are kept locally and shown in the popup, and legacy unowned retries are quarantined.
+- Development extension builds now open the localhost website for sign-in and product links, matching their localhost session API; production builds point both at pricehistory.id.
 - Tokopedia product pages now parse the complete `Terjual 1 rb+` label as 1,000 sold units instead of reading only the `1` child node.
 - The popup keeps the emerald-to-teal signature in a narrow header accent, moves the price summary onto a quiet neutral ground, and lets oversized price changes wrap instead of colliding; its dashboard target is at least 44px tall.
 - The popup now hides inactive price states, identifies the tracked tab, gives recovery steps when history is unavailable, and improves button contrast plus supporting-text legibility.

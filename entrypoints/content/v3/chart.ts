@@ -6,11 +6,11 @@ import {
   LineSeries,
   LineStyle,
   LineWidth,
-  UTCTimestamp
+  Time
 } from 'lightweight-charts';
 
 type PriceData = {
-  time: UTCTimestamp;
+  time: Time;
   price: number;
 };
 

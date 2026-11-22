@@ -17,14 +17,17 @@ function visibleState(): string | undefined {
 function setActiveTab(url: string, title?: string) {
   (global as any).chrome.tabs = { query: vi.fn(async () => [{ url, title }]) };
   (global as any).chrome.storage.local.get = vi.fn(async () => ({}));
+  chrome.runtime.sendMessage = vi.fn(async () => ({ success: true, authenticated: false, accountId: null, pending: 0 }));
 }
 
 beforeEach(() => {
+  vi.stubEnv('VITE_WEB_URL', 'https://pricehistory.id');
   loadPopupMarkup();
   setActiveTab('https://www.tokopedia.com/');
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
@@ -199,60 +202,92 @@ describe('popup tracked product', () => {
   });
 });
 
-describe('popup sync backlog', () => {
+describe('popup account sync', () => {
   beforeEach(() => {
     setActiveTab('https://www.tokopedia.com/shop-a/sepatu-abc123');
   });
 
-  function queued(count: number) {
-    return Array.from({ length: count }, (_, i) => ({
-      url: `https://www.tokopedia.com/shop-a/item-${i}`,
-      name: 'Product',
-      image_url: '',
-      price: 1000,
-      rating: 0,
-      sold: 0,
-    }));
-  }
-
-  function pendingLine() {
-    return document.querySelector<HTMLElement>('[data-field="pending"]');
-  }
-
-  it('reports prices that have not reached the API', async () => {
-    setStoredRecord(trackedRecord, queued(2));
-
+  it('shows local-only status and a separate login action when signed out', async () => {
+    setStoredRecord(trackedRecord, [{ url: 'https://www.tokopedia.com/legacy', price: 1000 }]);
     await render();
 
     expect(visibleState()).toBe('pdp-tracked');
-    expect(pendingLine()?.hidden).toBe(false);
+    expect(fieldText('sync-status')).toMatch(/lokal/i);
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(true);
+    expect(document.querySelector<HTMLAnchorElement>('[data-action="login"]')?.href).toBe('https://pricehistory.id/login');
+    expect(document.querySelector<HTMLElement>('[data-action="login"]')?.hidden).toBe(false);
+    expect(document.querySelector<HTMLAnchorElement>('.btn-portal')?.href).toContain('/product/');
+  });
+
+  it('opens the local website for dev sign-in and dashboard links', async () => {
+    vi.stubEnv('VITE_WEB_URL', 'http://localhost:3000');
+    await render();
+    expect(document.querySelector<HTMLAnchorElement>('[data-action="login"]')?.href).toBe('http://localhost:3000/login');
+    expect(document.querySelector<HTMLAnchorElement>('.btn-portal')?.href).toBe('http://localhost:3000/product/tokopedia-shop-a-sepatu-abc123');
+    setActiveTab('https://example.com/');
+    await render();
+    expect(document.querySelector<HTMLAnchorElement>('.btn-portal')?.href).toBe('http://localhost:3000/');
+  });
+
+  it('shows the account backlog reported by background, not legacy storage', async () => {
+    setStoredRecord(trackedRecord, [{ url: 'https://www.tokopedia.com/legacy', price: 1000 }]);
+    chrome.runtime.sendMessage = vi.fn(async () => ({ success: true, authenticated: true, accountId: 'account-a', pending: 2, rejected: 0 }));
+    await render();
+
+    expect(fieldText('sync-status')).toMatch(/sinkronisasi/i);
     expect(fieldText('pending')).toContain('2');
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>('[data-action="login"]')?.hidden).toBe(true);
   });
 
-  it('reports a single queued price', async () => {
-    setStoredRecord(trackedRecord, queued(1));
-
+  it('explains permanently rejected observations separately from retryable backlog', async () => {
+    chrome.runtime.sendMessage = vi.fn(async () => ({ success: true, authenticated: true, accountId: 'account-a', pending: 0, rejected: 1 }));
     await render();
-
-    expect(fieldText('pending')).toContain('1');
+    await vi.waitFor(() => expect(fieldText('rejected')).toMatch(/1.*tidak dapat disinkronkan/i));
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(true);
   });
 
-  it('stays hidden when nothing is queued', async () => {
+  it('hides backlog for an account with nothing pending', async () => {
+    chrome.runtime.sendMessage = vi.fn(async () => ({ success: true, authenticated: true, accountId: 'account-a', pending: 0, rejected: 0 }));
+    await render();
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(true);
+  });
+
+  it('shows local-only status on a non-product page', async () => {
+    setActiveTab('https://www.tokopedia.com/search?q=sepatu');
+    await render();
+    expect(visibleState()).toBe('search');
+    expect(fieldText('sync-status')).toMatch(/lokal/i);
+    expect(document.querySelector<HTMLElement>('[data-action="login"]')?.hidden).toBe(false);
+  });
+
+  it('does not claim sync or expose stale pending counts if background is unavailable', async () => {
     setStoredRecord(trackedRecord);
-
+    chrome.runtime.sendMessage = vi.fn(async () => { throw new Error('background unavailable'); });
     await render();
 
-    expect(pendingLine()?.hidden).toBe(true);
-    expect(fieldText('pending')).toBe('');
+    expect(visibleState()).toBe('pdp-tracked');
+    expect(fieldText('sync-status')).toMatch(/lokal/i);
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(true);
   });
 
-  it('reports the backlog for a product that was never tracked', async () => {
-    setStoredRecord(undefined, queued(3));
-
+  it('rejects an incomplete auth reply rather than claiming account sync', async () => {
+    chrome.runtime.sendMessage = vi.fn(async () => ({ success: true, authenticated: true, accountId: null, pending: 4 }));
     await render();
+    expect(fieldText('sync-status')).toMatch(/lokal/i);
+    expect(document.querySelector<HTMLElement>('[data-field="pending"]')?.hidden).toBe(true);
+  });
 
-    expect(visibleState()).toBe('pdp-untracked');
-    expect(fieldText('pending')).toContain('3');
+  it('shows saved local prices while the account status request never settles', async () => {
+    setStoredRecord(trackedRecord);
+    chrome.runtime.sendMessage = vi.fn(() => new Promise(() => {}));
+    void render();
+
+    await vi.waitFor(() => {
+      expect(visibleState()).toBe('pdp-tracked');
+      expect(fieldText('current')).toBe('Rp 1.000.000');
+    }, { timeout: 300 });
+    expect(fieldText('sync-status')).toMatch(/lokal/i);
   });
 });
 

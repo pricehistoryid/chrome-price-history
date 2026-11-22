@@ -123,6 +123,23 @@
         margin-top: 6px;
       }
 
+      .sync-status {
+        padding: 0 2px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--gray);
+      }
+      .sync-status [data-field="pending"] { margin-top: 4px; }
+      .sync-status [data-field="rejected"] { margin-top: 4px; color: #8a4515; }
+      .sync-status a {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--emerald);
+        font-weight: 600;
+        text-underline-offset: 3px;
+      }
+      .sync-status a:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+
       .price-delta {
         font-size: 12px;
         font-weight: 600;
@@ -208,7 +225,13 @@
           </div>
           <div class="caption" data-field="records">—</div>
         </div>
-        <div class="caption" data-field="pending" hidden></div>
+      </div>
+
+      <div class="sync-status" aria-live="polite">
+        <div data-field="sync-status">Mode lokal · status sinkronisasi tidak tersedia</div>
+        <div data-field="pending" hidden></div>
+        <div data-field="rejected" hidden></div>
+        <a data-action="login" href="https://pricehistory.id/login" target="_blank" rel="noopener noreferrer">Masuk untuk sinkronisasi</a>
       </div>
 
       <a href="https://pricehistory.id" target="_blank" class="btn-portal">

@@ -93,20 +93,19 @@ A browser extension for tracking price history on Indonesian online marketplaces
    pnpm install
    ```
 
-2. Point the extension at your local API. The URL comes from the build mode, so
-   nothing needs editing:
-   - `pnpm dev` reads `.env.development` → `http://localhost:3001/api/v1/price`
-   - `pnpm build` reads `.env.production` → `https://pricehistory.id/api/v1/price`
+2. API and website URLs are chosen by build mode; no bearer token is included in the extension:
+   - `pnpm dev` reads `.env.development` → `http://localhost:3001/api/v1/account/prices` and `http://localhost:3000/login`
+   - `pnpm build` reads `.env.production` → `https://pricehistory.id/api/v1/account/prices` and `https://pricehistory.id/login`
 
-   Port layout: the dashboard runs on **3000** (its Vite proxy forwards `/api` to
-   **3001**, where the API lives) and WXT's dev server is pinned to **3010** so it
-   cannot take a port the app is using. The extension calls the API directly
-   rather than through the dashboard's proxy.
-
-   Credentials differ per environment: the local API authenticates ingest with
-   the app's `INTERNAL_API_KEY` as a Bearer token, not a user session. Put it in
-   `.env.development.local` (git-ignored) as `VITE_API_JWT_TOKEN`, and keep the
-   production credential in `.env`. Anything else is a 401 locally.
+   The dashboard runs on **3000**, the API on **3001**, and WXT's dev server on
+   **3010**. Sign in through the popup's website link for that mode before
+   syncing. Product and list-page observations remain local when signed out or offline. Authenticated
+   server history belongs to that website account and is never copied into the
+   unowned `price_history` storage key. Failed uploads are retried only under
+   their originating account; permanently rejected observations stay local
+   with a visible count instead of blocking later uploads. The older unowned
+   `sync_queue` stays local and is never uploaded automatically. The API's
+   `INTERNAL_API_KEY` is server-only: do not put it in any `VITE_` variable.
 
 3. Development server:
    ```bash

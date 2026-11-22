@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { modal } from '../entrypoints/content/v3/inject';
 import { pointFooterAtProduct, setupTabListeners } from '../entrypoints/content/v3/event-listener';
 
@@ -12,6 +12,9 @@ beforeAll(() => {
   // Initialize listeners for testing
   setupTabListeners(modal as HTMLDivElement);
 });
+
+beforeEach(() => vi.stubEnv('VITE_WEB_URL', 'https://pricehistory.id'));
+afterEach(() => vi.unstubAllEnvs());
 
 describe('Modal Structure', () => {
   it('identifies the price-history chart instead of relying on context', () => {
@@ -55,5 +58,11 @@ describe('Modal handoff', () => {
     expect(link?.getAttribute('href')).toBe(
       'https://pricehistory.id/product/tokopedia-shop-a-sepatu-abc123',
     );
+  });
+
+  it('opens the local product page in a dev build', () => {
+    vi.stubEnv('VITE_WEB_URL', 'http://localhost:3000');
+    pointFooterAtProduct('https://www.tokopedia.com/shop-a/sepatu-abc123');
+    expect(modal.querySelector<HTMLAnchorElement>('.modal-footer a')?.href).toBe('http://localhost:3000/product/tokopedia-shop-a-sepatu-abc123');
   });
 });

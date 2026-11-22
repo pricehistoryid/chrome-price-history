@@ -16,11 +16,11 @@ export function validateAndSanitizeUrl(url: string): string {
     if (urlObj.protocol !== 'https:') {
       throw new Error('Invalid URL: Only HTTPS URLs are allowed');
     }
-    // Only hosts the extension has a scraper for
-    if (!isSupportedHost(urlObj.hostname)) {
-      throw new Error('Invalid URL: Domain not allowed');
+    const normalized = urlObj.toString();
+    if (!isSupportedHost(urlObj.hostname) || urlObj.username || urlObj.password || urlObj.port || normalized.length > 2048) {
+      throw new Error('Invalid URL: Domain or URL authority not allowed');
     }
-    return urlObj.toString();
+    return normalized;
   } catch (error) {
     throw new Error(`Invalid URL format: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -88,8 +88,8 @@ export function validateAndParsePrice(price: string | number): number {
     throw new Error('Invalid price: Price must be greater than zero');
   }
 
-  if (parsedPrice > 10_000_000_000) { // 10 billion
-    throw new Error('Invalid price: Price exceeds maximum limit');
+  if (parsedPrice > 2_147_483_647) {
+    throw new Error('Invalid price: Price exceeds API integer limit');
   }
 
   return parsedPrice;

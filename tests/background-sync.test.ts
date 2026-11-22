@@ -1,246 +1,35 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SYNC_QUEUE_KEY } from '../shared/sync-queue';
+import { afterEach, expect, it, vi } from 'vitest';
 
-type MessageListener = (
-  message: any,
-  sender: unknown,
-  sendResponse: (response: any) => void,
-) => unknown;
-
-interface WorkerHarness {
-  send: (payload: unknown) => Promise<any>;
-  readHistory: (url: string) => Promise<any>;
-  navigate: (url?: string) => void;
-  sentMessages: () => unknown[][];
-  postedUrls: () => string[];
-  postedBodies: () => Array<Array<{ url: string }>>;
-  historyRequests: () => Array<{ url: string; init: RequestInit }>;
-  storedQueue: () => unknown;
-}
-
-function product(url: string) {
-  return { url, name: 'Product', image_url: '', price: 1000, rating: 0, sold: 0 };
-}
-
-/**
- * Loads the real service worker with just enough chrome surface to drive it.
- * `queueOnDisk` is what every `storage.local.get` returns for the retry queue.
- */
-async function loadWorker(
-  fetchImpl: () => Promise<unknown>,
-  queueOnDisk: unknown = undefined,
-  historyResponse: unknown = { ok: true, json: async () => ({ success: true, data: [] }) },
-): Promise<WorkerHarness> {
+async function navigationWorker() {
   vi.resetModules();
-
-  let listener: MessageListener | undefined;
-  const tabListeners: Array<(tabId: number, changeInfo: { url?: string }, tab: unknown) => void> = [];
-  let queue = queueOnDisk;
-  const sendMessageMock = vi.fn(async () => undefined);
-
-  (global as any).defineBackground = (fn: () => void) => fn();
-  (global as any).chrome = {
-    runtime: {
-      onMessage: {
-        addListener: (fn: MessageListener) => {
-          listener = fn;
-        },
-      },
-    },
-    tabs: {
-      onUpdated: {
-        addListener: (fn: (tabId: number, changeInfo: { url?: string }, tab: unknown) => void) => {
-          tabListeners.push(fn);
-        },
-      },
-      sendMessage: sendMessageMock,
-    },
-    storage: {
-      local: {
-        get: vi.fn(async () => ({ [SYNC_QUEUE_KEY]: queue })),
-        set: vi.fn(async (items: Record<string, unknown>) => {
-          queue = items[SYNC_QUEUE_KEY];
-        }),
-      },
-    },
-  };
-
-  const fetchMock = vi.fn(async (_url: string, init: RequestInit = {}) => {
-    if (init.method === 'GET') return historyResponse as Response;
-    const body = JSON.parse(String(init.body));
-    await fetchImpl();
-    return { ok: true, text: async () => JSON.stringify(body) } as unknown as Response;
+  let onUpdated: ((tabId: number, change: { url?: string }, tab: unknown) => void) | undefined;
+  const sendMessage = vi.fn(async () => undefined);
+  vi.stubGlobal('defineBackground', (run: () => void) => run());
+  vi.stubGlobal('chrome', {
+    runtime: { onMessage: { addListener: () => {} } },
+    tabs: { onUpdated: { addListener: (listener: typeof onUpdated) => { onUpdated = listener; } }, sendMessage },
   });
-  vi.stubGlobal('fetch', fetchMock);
-
-  // Dynamic on purpose: each test needs the worker re-evaluated against the
-  // chrome surface stubbed above, which a static import would evaluate once.
+  // The worker registers listeners during import; the chrome surface must exist first.
   await import('../entrypoints/background');
-
-  return {
-    send: (payload: unknown) => {
-      const { promise, resolve } = Promise.withResolvers<any>();
-      listener?.({ type: 'UPDATE_PRODUCT_PRICE', payload }, {}, resolve);
-      void vi.advanceTimersByTimeAsync(60_000);
-      return promise;
-    },
-    readHistory: (url) => {
-      const { promise, resolve } = Promise.withResolvers<any>();
-      const handled = listener?.({ type: 'GET_PRODUCT_PRICE_HISTORY', url }, {}, resolve);
-      if (!handled) resolve(undefined);
-      return promise;
-    },
-    navigate: (url?: string) => {
-      for (const fn of tabListeners) fn(7, { url }, {});
-    },
-    sentMessages: () => sendMessageMock.mock.calls as unknown[][],
-    postedUrls: () => fetchMock.mock.calls.map((call) => String(call[0])),
-    postedBodies: () =>
-      fetchMock.mock.calls.map((call) => JSON.parse(String((call[1] as RequestInit).body))),
-    historyRequests: () =>
-      fetchMock.mock.calls
-        .filter((call) => (call[1] as RequestInit).method === 'GET')
-        .map((call) => ({ url: String(call[0]), init: call[1] as RequestInit })),
-    storedQueue: () => queue,
-  };
+  return { navigate: (url?: string) => onUpdated?.(7, { url }, {}), sendMessage };
 }
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  vi.stubEnv('VITE_API_JWT_TOKEN', 'test-token');
-  vi.stubEnv('VITE_API_URL', 'http://localhost:9999/api/v1/price');
+afterEach(() => { vi.unstubAllGlobals(); });
+
+it('re-scrapes supported marketplace tabs on navigation', async () => {
+  const worker = await navigationWorker();
+  worker.navigate('https://shopee.co.id/Uji-Monitor-i.1.2');
+  worker.navigate('https://www.tokopedia.com/shop-a/sepatu-abc123');
+  expect(worker.sendMessage.mock.calls).toEqual([
+    [7, { type: 'urlChanged' }],
+    [7, { type: 'urlChanged' }],
+  ]);
 });
 
-afterEach(() => {
-  vi.useRealTimers();
-  vi.unstubAllEnvs();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
-
-describe('background navigation notifications', () => {
-  it('tells the content script to re-scrape on both marketplaces', async () => {
-    const worker = await loadWorker(async () => undefined);
-
-    worker.navigate('https://shopee.co.id/Uji-Monitor-i.1.2');
-    worker.navigate('https://www.tokopedia.com/shop-a/sepatu-abc123');
-
-    expect(worker.sentMessages()).toEqual([
-      [7, { type: 'urlChanged' }],
-      [7, { type: 'urlChanged' }],
-    ]);
-  });
-
-  it('stays quiet for unsupported sites and for a missing url', async () => {
-    const worker = await loadWorker(async () => undefined);
-
-    worker.navigate('https://example.com/shop-a/sepatu-abc123');
-    worker.navigate('https://tokopedia.com.evil.com/x-y1');
-    worker.navigate();
-
-    expect(worker.sentMessages()).toEqual([]);
-  });
-});
-
-describe('background price upload', () => {
-  it('queues the batch when the API rejects it', async () => {
-    const worker = await loadWorker(async () => {
-      throw new Error('network down');
-    });
-
-    const response = await worker.send([product('a')]);
-
-    expect(response.success).toBe(false);
-    expect(worker.storedQueue()).toEqual([product('a')]);
-  });
-
-  it('stops draining at the first failed request and keeps the rest', async () => {
-    const queued = Array.from({ length: 101 }, (_, i) => product(`url-${i}`));
-    let attempt = 0;
-    const worker = await loadWorker(async () => {
-      attempt += 1;
-      // The trigger batch lands, then the API goes down mid-drain.
-      if (attempt > 1) throw new Error('network down');
-    }, queued);
-
-    await worker.send([product('trigger')]);
-
-    const posted = worker.postedBodies();
-    expect(posted[0]).toEqual([product('trigger')]);
-    // The second queued batch (the last price on its own) is never attempted.
-    expect(posted.some((body) => body.length === 1 && body[0].url === 'url-100')).toBe(false);
-    // Everything that was queued stays queued.
-    expect(worker.storedQueue()).toEqual(queued);
-  });
-
-  it('hands over the backlog once an upload succeeds', async () => {
-    const queued = [product('old-1'), product('old-2')];
-    const worker = await loadWorker(async () => undefined, queued);
-
-    const response = await worker.send([product('fresh')]);
-
-    expect(response.success).toBe(true);
-    expect(worker.postedBodies()).toEqual([[product('fresh')], queued]);
-    expect(worker.storedQueue()).toEqual([]);
-  });
-});
-
-describe('API endpoint', () => {
-  it('reads validated history using the shared credential and requested product URL', async () => {
-    const url = 'https://www.tokopedia.com/shop-a/sepatu-abc123';
-    const points = [
-      { time: '2026-09-22', price: 210000 },
-      { time: '2026-09-28', price: 189000 },
-      { time: 'invalid', price: 1 },
-      { time: '2026-09-29', price: Number.NaN },
-      { time: '2026-09-30', price: -1 },
-    ];
-    const worker = await loadWorker(async () => undefined, undefined, {
-      ok: true,
-      json: async () => ({ success: true, data: points }),
-    });
-
-    expect(await worker.readHistory(url)).toEqual({
-      success: true,
-      data: [
-        { time: '2026-09-22', price: 210000 },
-        { time: '2026-09-28', price: 189000 },
-      ],
-    });
-
-    const [request] = worker.historyRequests();
-    const requestUrl = new URL(request.url);
-    expect(requestUrl.pathname).toBe('/api/v1/price');
-    expect(requestUrl.searchParams.get('url')).toBe(url);
-    expect(request.init.method).toBe('GET');
-    expect(new Headers(request.init.headers).get('Authorization')).toBe('Bearer test-token');
-  });
-
-  it('returns no remote history when the endpoint is unavailable', async () => {
-    const worker = await loadWorker(async () => undefined, undefined, { ok: false });
-
-    expect(await worker.readHistory('https://www.tokopedia.com/shop-a/sepatu-abc123')).toEqual({
-      success: false,
-      data: [],
-    });
-  });
-  it('uploads to the endpoint the environment provides', async () => {
-    const worker = await loadWorker(async () => undefined);
-
-    await worker.send([product('a')]);
-
-    expect(worker.postedUrls()).toEqual(['http://localhost:9999/api/v1/price']);
-  });
-
-  it('queues instead of uploading when no endpoint is configured', async () => {
-    vi.stubEnv('VITE_API_URL', '');
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const worker = await loadWorker(async () => undefined);
-
-    const response = await worker.send([product('a')]);
-
-    expect(response.success).toBe(false);
-    expect(worker.postedUrls()).toEqual([]);
-    expect(worker.storedQueue()).toEqual([product('a')]);
-  });
+it('does not notify tabs on unsupported or absent URLs', async () => {
+  const worker = await navigationWorker();
+  worker.navigate('https://example.com/shop-a/sepatu-abc123');
+  worker.navigate('https://tokopedia.com.evil.com/x-y1');
+  worker.navigate();
+  expect(worker.sendMessage).not.toHaveBeenCalled();
 });
